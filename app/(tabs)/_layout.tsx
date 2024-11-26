@@ -1,45 +1,59 @@
-import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import HomePage from '../../components/Homepage'; 
+import LoginPage from '@/components/LoginPage';
+import { Icon } from 'react-native-elements';
+import { View, Text } from 'react-native';
 
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+const Tab = createBottomTabNavigator();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+// Placeholder Component for another tab
+const SettingsPage = () => {
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>Settings Page</Text>
+    </View>
   );
-}
+};
+
+const TabsLayout = () => {
+  return (
+    <Tab.Navigator
+      initialRouteName="Home"
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
+          let iconName = 'circle'; // Default icon
+
+          // Determine the icon name based on the route name
+          if (route.name === 'Home') {
+            iconName = 'home';
+          } else if (route.name === 'Settings') {
+            iconName = 'cog';
+          }else if (route.name === 'Login') {
+            iconName = 'sign-in'; // Icon for the Login tab
+          }
+
+          return <Icon name={iconName} type="font-awesome" color={color} size={size} />;
+        },
+        tabBarActiveTintColor: '#34c2b3', // Color when tab is active
+        tabBarInactiveTintColor: '#6b6b6b', // Color when tab is inactive
+        headerShown: false, // Hide the header for all tabs to keep it clean
+      })}
+    >
+      <Tab.Screen name="Home" component={HomePage} />
+      <Tab.Screen name="Settings" component={SettingsPage} />
+      <Tab.Screen
+        name="Login"
+        options={{ tabBarLabel: 'Login' }}
+        children={(props) => (
+          <LoginPage
+            {...props}
+            setIsAuthenticated={() => console.log('Login Triggered')}
+          />
+        )}
+      />
+    </Tab.Navigator>
+  );
+};
+
+export default TabsLayout;
