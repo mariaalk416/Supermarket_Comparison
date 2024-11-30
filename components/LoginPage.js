@@ -1,30 +1,27 @@
-import React, { useState }  from 'react';
+import React from 'react';
 import styled from 'styled-components/native';
 import { View, TextInput, TouchableOpacity, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/FontAwesome';
-import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
 import PropTypes from 'prop-types';
 
-
-
-
-const LoginPage = ({ navigation }) => {
-    const handleLogin = async () => {
-        try {
-          await AsyncStorage.setItem('loginname', 'userLogged'); // Save login info
-          setIsAuthenticated(true); // Update authentication state
-          navigation.navigate('Home'); // Navigate to Home
-        } catch (error) {
-          console.error('Error during login:', error);
-        }
-      };
+const LoginPage = ({ navigation, setIsAuthenticated }) => {
+  const handleLogin = async () => {
+    try {
+      await AsyncStorage.setItem('loginname', 'userLogged'); // Save login info
+      setIsAuthenticated(); // Update authentication state
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+    } catch (error) {
+      console.error('Error during login:', error);
+    }
+  };
 
   return (
-    <SafeAreaContainer edges={['left', 'right', 'bottom']}>
+    <SafeAreaContainer>
       <LoginScrollContainer contentContainerStyle={{ flexGrow: 1, paddingBottom: 50 }}>
         <LoginGradient
           colors={['#8ae1e6', '#34c2b3']}
@@ -32,41 +29,21 @@ const LoginPage = ({ navigation }) => {
           end={{ x: 1, y: 1 }}
           style={{ borderRadius: 20, marginBottom: 40, padding: 30 }}
         >
-          <Animatable.View animation="fadeInDown">
-            <LoginTitle>Welcome!</LoginTitle>
-            <LoginSubTitle>Log in to continue comparing prices and saving big.</LoginSubTitle>
-          </Animatable.View>
+          <LoginTitle>Welcome!</LoginTitle>
+          <LoginSubTitle>Log in to continue comparing prices and saving big.</LoginSubTitle>
         </LoginGradient>
 
         <LoginForm>
-          <Animatable.View animation="fadeInUp" delay={300}>
-            <InputField
-              placeholder="Email"
-              placeholderTextColor="#aaa"
-              keyboardType="email-address"
-            />
-          </Animatable.View>
-
-          <Animatable.View animation="fadeInUp" delay={600}>
-            <InputField
-              placeholder="Password"
-              placeholderTextColor="#aaa"
-              secureTextEntry={true}
-            />
-          </Animatable.View>
-
-          <Animatable.View animation="fadeInUp" delay={900}>
-            <LoginButton>
-              <ButtonText>Login</ButtonText>
-            </LoginButton>
-          </Animatable.View>
-
-          <Animatable.View animation="fadeInUp" delay={1200}>
-            <ForgotPassword>
-              Forgot Password?
-            </ForgotPassword>
-          </Animatable.View>
+          <InputField placeholder="Email" placeholderTextColor="#aaa" keyboardType="email-address" />
+          <InputField placeholder="Password" placeholderTextColor="#aaa" secureTextEntry={true} />
+          <LoginButton onPress={handleLogin}>
+            <ButtonText>Login</ButtonText>
+          </LoginButton>
         </LoginForm>
+
+        <ForgotPassword>
+          <Text>Forgot Password?</Text>
+        </ForgotPassword>
 
         <RegisterLink>
           <RegisterText>Don't have an account? </RegisterText>
@@ -80,7 +57,8 @@ const LoginPage = ({ navigation }) => {
 };
 
 LoginPage.propTypes = {
-    setIsAuthenticated: PropTypes.func.isRequired,
+  setIsAuthenticated: PropTypes.func.isRequired,
+  navigation: PropTypes.object.isRequired,
 };
 
 // Styled Components for React Native
