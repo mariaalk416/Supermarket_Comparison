@@ -5,16 +5,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PropTypes from 'prop-types';
+import { CommonActions } from '@react-navigation/native';
 
 const LoginPage = ({ navigation, setIsAuthenticated }) => {
   const handleLogin = async () => {
     try {
       await AsyncStorage.setItem('loginname', 'userLogged'); // Save login info
       setIsAuthenticated(); // Update authentication state
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Home' }],
-      });
+      navigation.navigate('TabsLayout', { screen: 'Home' });
     } catch (error) {
       console.error('Error during login:', error);
     }

@@ -1,17 +1,23 @@
 import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NavigationContainer, NavigationIndependentTree  } from '@react-navigation/native';
 import { View } from 'react-native';
 import styled from 'styled-components/native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Index from './index';
 
 const RootLayout = () => {
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <ContentContainer>
-        <Stack />
-      </ContentContainer>
-    </SafeAreaView>
+    <NavigationIndependentTree>
+    <NavigationContainer>
+      <SafeAreaView style={{ flex: 1 }}>
+        <ContentContainer>
+          <Stack />
+        </ContentContainer>
+      </SafeAreaView>
+    </NavigationContainer>
+    </NavigationIndependentTree>
   );
 };
 
