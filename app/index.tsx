@@ -11,6 +11,7 @@ import WishlistPage from'@/components/WishlistPage';
 import TabsLayout from './(tabs)/_layout';
 import { View, ActivityIndicator } from 'react-native';
 import AppStack from './AppStack';
+import AdminPage from '../components/AdminPage';
 
 enum AuthState {
   UNKNOWN,
@@ -23,6 +24,7 @@ const Stack = createStackNavigator();
 const Index = () => {
   const [authState, setAuthState] = useState<AuthState>(AuthState.UNKNOWN);
   const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState([]);
 
   useEffect(() => {
     const clearStorageForTesting = async () => {
@@ -71,7 +73,7 @@ const Index = () => {
       </View>
     );
   };
-
+  
   return (
     <Stack.Navigator screenOptions={{
       headerTitle: () => <HeaderWithLogo />, // Custom header
@@ -92,6 +94,12 @@ const Index = () => {
         <Stack.Screen name="Wishlist" component={WishlistPage} options={{ title: 'Wishlist' }} />
         <Stack.Screen name="Leaflets" component={LeafletPage} options={{ title: 'Leaflets' }} />
         <Stack.Screen name="ComparePrices" component={ComparePage} options={{ title: 'Compare Prices' }} />
+        <Stack.Screen
+              name="Admin"
+              component={AdminPage}
+              initialParams={{ products, setProducts }}
+              options={{ title: 'Admin Page' }}
+            />
         </>
       ) : (
         <>

@@ -5,6 +5,7 @@ import LoginPage from '@/components/LoginPage';
 import ComparePage from '@/components/ComparePage';
 import LeafletPage from '@/components/LeafletPage';
 import WishlistPage from'@/components/WishlistPage';
+import AdminPage from '@/components/AdminPage';
 import { Icon } from 'react-native-elements';
 import { View, Text } from 'react-native';
 
@@ -32,6 +33,8 @@ const TabsLayout = () => {
             iconName = 'home';
           } else if (route.name === 'Settings') {
             iconName = 'cog';
+          } else if (route.name === 'Admin') {
+            iconName = 'shield'; // Icon for the Admin tab
           }else if (route.name === 'Login') {
             iconName = 'sign-in'; // Icon for the Login tab
           }
@@ -44,6 +47,7 @@ const TabsLayout = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomePage} />
+      <Tab.Screen name="Admin" component={AdminPage} options={{ tabBarLabel: 'Admin' }} />
       <Tab.Screen name="Settings" component={SettingsPage} />
       <Tab.Screen
         name="Login"
