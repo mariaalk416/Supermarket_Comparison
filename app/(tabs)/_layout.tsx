@@ -2,6 +2,9 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomePage from '../../components/Homepage'; 
 import LoginPage from '@/components/LoginPage';
+import ComparePage from '@/components/ComparePage';
+import LeafletPage from '@/components/LeafletPage';
+import WishlistPage from'@/components/WishlistPage';
 import { Icon } from 'react-native-elements';
 import { View, Text } from 'react-native';
 

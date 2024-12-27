@@ -11,12 +11,12 @@ import RealTimePriceIcon from '../assets/images/pic1.jpg';
 import PersonalizedIcon from '../assets/images/pic2.png';
 import CompareIcon from '../assets/images/pic3.jpg';
 
-const HomePage = () => {
+const HomePage = ({ navigation }) => {
   return (
     <SafeAreaContainer edges={['left', 'right', 'bottom']}>
       <ScrollContainer contentContainerStyle={{ flexGrow: 1, paddingBottom: 115 }}>
         <HeroGradient
-          colors={['#8ae1e6', '#34c2b3']} // Updated gradient colors
+          colors={['#8ae1e6', '#34c2b3']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{ borderRadius: 20, marginBottom: 20, padding: 20 }}
@@ -24,7 +24,7 @@ const HomePage = () => {
           <HeroContent>
             <Title>Discover & Save with Supermarket Price Comparisons!</Title>
             <SubTitle>
-              Your ultimate tool to find the best deals, personalize your shopping, and maximize your savings.
+              
             </SubTitle>
             <SearchBar>
               <SearchInput placeholder="Search for products..." placeholderTextColor="#aaa" />
@@ -39,12 +39,17 @@ const HomePage = () => {
             <CardGradient colors={['#e0f7f9', '#ffffff']}>
               <CardIcon source={RealTimePriceIcon} />
               <FeatureContent>
-                <FeatureTitle>Real-Time Price Alerts</FeatureTitle>
+                <FeatureTitle>Compare Prices</FeatureTitle>
                 <FeatureDescription>
-                  Get notified whenever your favorite products go on sale. Stay ahead of the price changes!
+                  Find the best prices to save money!
                 </FeatureDescription>
-                <CardButton>
-                  <ButtonText>See Alerts</ButtonText>
+                <CardButton style={{ 
+                  shadowColor: '#000', 
+                  shadowOffset: { width: 0, height: 2 }, 
+                  shadowOpacity: 0.25, 
+                  shadowRadius: 3.84 
+                  }} onPress={() => navigation.navigate('ComparePrices')}>
+                  <ButtonText>Compare!</ButtonText>
                 </CardButton>
               </FeatureContent>
             </CardGradient>
@@ -53,12 +58,17 @@ const HomePage = () => {
             <CardGradient colors={['#e0f7f9', '#ffffff']}>
               <CardIcon source={PersonalizedIcon} />
               <FeatureContent>
-                <FeatureTitle>Personalized Experience</FeatureTitle>
+                <FeatureTitle>Wishlist</FeatureTitle>
                 <FeatureDescription>
-                  Receive tailored recommendations based on your shopping habits and preferences.
+                  Save your favorite products.
                 </FeatureDescription>
-                <CardButton>
-                  <ButtonText>Learn More</ButtonText>
+                <CardButton style={{ 
+                  shadowColor: '#000', 
+                  shadowOffset: { width: 0, height: 2 }, 
+                  shadowOpacity: 0.25, 
+                  shadowRadius: 3.84 
+                  }} onPress={() => navigation.navigate('Wishlist')}>
+                  <ButtonText>View Wishlist</ButtonText>
                 </CardButton>
               </FeatureContent>
             </CardGradient>
@@ -67,12 +77,17 @@ const HomePage = () => {
             <CardGradient colors={['#e0f7f9', '#ffffff']}>
               <CardIcon source={CompareIcon} />
               <FeatureContent>
-                <FeatureTitle>Compare Across Stores</FeatureTitle>
+                <FeatureTitle>Leaflets</FeatureTitle>
                 <FeatureDescription>
-                  Find the best prices across all major supermarkets, ensuring you always get the best deal.
+                  Browse supermarket leaflets for ongoing deals and discounts.
                 </FeatureDescription>
-                <CardButton>
-                  <ButtonText>Compare Prices</ButtonText>
+                <CardButton style={{ 
+                  shadowColor: '#000', 
+                  shadowOffset: { width: 0, height: 2 }, 
+                  shadowOpacity: 0.25, 
+                  shadowRadius: 3.84 
+                  }} onPress={() => navigation.navigate('Leaflets')}>
+                  <ButtonText>View Leaflets</ButtonText>
                 </CardButton>
               </FeatureContent>
             </CardGradient>
@@ -83,7 +98,6 @@ const HomePage = () => {
   );
 };
 
-// Styled Components for React Native
 const SafeAreaContainer = styled(SafeAreaView)`
   flex: 1;
   background-color: #e0f7f9; 
@@ -187,8 +201,10 @@ const FeatureDescription = styled(Text)`
 const CardButton = styled(TouchableOpacity)`
   padding: 10px 15px;
   border-radius: 25px;
+  background-color: #fff; 
   border: 1px solid #34c2b3; 
   align-self: flex-start;
+  elevation: 5; /* For shadow support in Android */
 `;
 
 const ButtonText = styled(Text)`

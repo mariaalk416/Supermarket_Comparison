@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer, NavigationIndependentTree } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { Image, Text, StyleSheet } from 'react-native';
+import HomePage from '../components/Homepage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginPage from '../components/LoginPage';
+import ComparePage from '@/components/ComparePage';
+import LeafletPage from '@/components/LeafletPage';
+import WishlistPage from'@/components/WishlistPage';
 import TabsLayout from './(tabs)/_layout';
 import { View, ActivityIndicator } from 'react-native';
+import AppStack from './AppStack';
 
 enum AuthState {
   UNKNOWN,
@@ -57,8 +63,24 @@ const Index = () => {
     );
   }
 
+  const HeaderWithLogo = () => {
+    return (
+      <View style={styles.headerContainer}>
+        <Image source={require('../assets/images/supermarket-logo.png')} style={styles.logo} />
+        <Text style={styles.appName}>ShopSmart</Text>
+      </View>
+    );
+  };
+
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{
+      headerTitle: () => <HeaderWithLogo />, // Custom header
+      headerStyle: {
+        backgroundColor: '#34c2b3', // Header background color
+      },
+      headerTitleAlign: 'center', // Center the header content
+    }}
+  >
       {authState === AuthState.AUTHENTICATED ? (
         <>
             {console.log('Rendering Home Stack')} 
@@ -67,6 +89,9 @@ const Index = () => {
           component={TabsLayout}
           options={{ headerShown: false }}
         />
+        <Stack.Screen name="Wishlist" component={WishlistPage} options={{ title: 'Wishlist' }} />
+        <Stack.Screen name="Leaflets" component={LeafletPage} options={{ title: 'Leaflets' }} />
+        <Stack.Screen name="ComparePrices" component={ComparePage} options={{ title: 'Compare Prices' }} />
         </>
       ) : (
         <>
@@ -86,5 +111,22 @@ const Index = () => {
     </Stack.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logo: {
+    width: 30,
+    height: 30,
+    marginRight: 10,
+  },
+  appName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+});
 
 export default Index;

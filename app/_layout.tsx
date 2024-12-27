@@ -6,6 +6,7 @@ import styled from 'styled-components/native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Index from './index';
+import AppStack from './AppStack';
 
 const RootLayout = () => {
   return (
@@ -13,7 +14,9 @@ const RootLayout = () => {
     <NavigationContainer>
       <SafeAreaView style={{ flex: 1 }}>
         <ContentContainer>
-          <Stack />
+          <Stack screenOptions={{
+            headerShown: false, 
+          }}/>
         </ContentContainer>
       </SafeAreaView>
     </NavigationContainer>
