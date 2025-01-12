@@ -1,7 +1,10 @@
 import React from 'react';
 import { Image, Text, View, StyleSheet } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { NavigationContainer } from '@react-navigation/native';
 import HomePage from '../components/Homepage';
+import AdminPage from '../components/AdminPage';
+import ManageDropdownsPage from '../components/DropDown';
 
 const Stack = createStackNavigator();
 
@@ -16,17 +19,35 @@ const HeaderWithLogo = () => {
 
 const AppStack = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerTitle: () => <HeaderWithLogo />, // Custom header
-        headerStyle: {
-          backgroundColor: '#34c2b3', // Header background color
-        },
-        headerTitleAlign: 'center', // Center the header content
-      }}
-    >
-      <Stack.Screen name="Home" component={HomePage} />
-    </Stack.Navigator>
+    <NavigationContainer>
+      <Stack.Navigator
+        initialRouteName="Home"
+        screenOptions={{
+          headerTitle: () => <HeaderWithLogo />, // Custom header
+          headerStyle: {
+            backgroundColor: '#34c2b3', // Header background color
+          },
+          headerTitleAlign: 'center', // Center the header content
+        }}
+      >
+        {/* Home Page */}
+        <Stack.Screen name="Home" component={HomePage} />
+
+        {/* Admin Page */}
+        <Stack.Screen 
+          name="AdminPage" 
+          component={AdminPage} 
+          options={{ title: 'Admin Page' }} 
+        />
+
+        {/* Manage Dropdowns Page */}
+        <Stack.Screen 
+          name="ManageDropdownsPage" 
+          component={ManageDropdownsPage} 
+          options={{ title: 'Manage Dropdowns' }} 
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 

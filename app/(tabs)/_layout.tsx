@@ -1,66 +1,100 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import HomePage from '../../components/Homepage'; 
+import { createStackNavigator } from '@react-navigation/stack';
+import HomePage from '../../components/Homepage';
 import LoginPage from '@/components/LoginPage';
-import ComparePage from '@/components/ComparePage';
-import LeafletPage from '@/components/LeafletPage';
-import WishlistPage from'@/components/WishlistPage';
 import AdminPage from '@/components/AdminPage';
+import SettingsPage from '@/components/Settings';
+import DropDown from '@/components/DropDown';
 import { Icon } from 'react-native-elements';
-import { View, Text } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
 
-// Placeholder Component for another tab
-const SettingsPage = () => {
+const Tabs = ({ setIsAuthenticated }) => (
+  <Tab.Navigator
+    screenOptions={({ route }) => ({
+      tabBarIcon: ({ color, size }) => {
+        let iconName = 'circle';
+
+        if (route.name === 'Home') {
+          iconName = 'home';
+        } else if (route.name === 'Settings') {
+          iconName = 'cog';
+        } else if (route.name === 'Admin') {
+          iconName = 'shield';
+        }
+
+        return <Icon name={iconName} type="font-awesome" color={color} size={size} />;
+      },
+      tabBarActiveTintColor: '#34c2b3',
+      tabBarInactiveTintColor: '#6b6b6b',
+      headerShown: false,
+    })}
+  >
+    <Tab.Screen name="Home" component={HomePage} />
+    <Tab.Screen name="Admin" component={AdminPage} />
+    <Tab.Screen name="DropDown" component={DropDown} />
+    <Tab.Screen
+      name="Settings"
+      children={() => <SettingsPage setIsAuthenticated={setIsAuthenticated} />}
+    />
+  </Tab.Navigator>
+);
+
+const AppNavigator = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Start as not authenticated
+
+  useEffect(() => {
+
+    const handleLogin = async () => {
+      try {
+        await AsyncStorage.setItem('loginname', 'userSession'); // Mock login session
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error('Error during login:', error);
+      }
+    };
+  
+    const handleLogout = async () => {
+      try {
+        await AsyncStorage.removeItem('loginname');
+        setIsAuthenticated(false);
+      } catch (error) {
+        console.error('Error during logout:', error);
+      }
+    };
+    
+    const checkAuthentication = async () => {
+      const loginName = await AsyncStorage.getItem('loginname');
+      if (loginName) {
+        setIsAuthenticated(true); // User is authenticated
+      }
+    };
+
+    checkAuthentication();
+  }, []);
+
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Settings Page</Text>
-    </View>
+    <Stack.Navigator>
+      {isAuthenticated ? (
+        <Stack.Screen
+          name="Main"
+          options={{ headerShown: false }}
+          children={() => <Tabs setIsAuthenticated={setIsAuthenticated} />}
+        />
+      ) : (
+        <Stack.Screen
+          name="Login"
+          options={{ headerShown: false }}
+          children={(props) => (
+            <LoginPage {...props} setIsAuthenticated={setIsAuthenticated} />
+          )}
+        />
+      )}
+    </Stack.Navigator>
   );
 };
 
-const TabsLayout = () => {
-  return (
-    <Tab.Navigator
-      initialRouteName="Home"
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
-          let iconName = 'circle'; // Default icon
-
-          // Determine the icon name based on the route name
-          if (route.name === 'Home') {
-            iconName = 'home';
-          } else if (route.name === 'Settings') {
-            iconName = 'cog';
-          } else if (route.name === 'Admin') {
-            iconName = 'shield'; // Icon for the Admin tab
-          }else if (route.name === 'Login') {
-            iconName = 'sign-in'; // Icon for the Login tab
-          }
-
-          return <Icon name={iconName} type="font-awesome" color={color} size={size} />;
-        },
-        tabBarActiveTintColor: '#34c2b3', // Color when tab is active
-        tabBarInactiveTintColor: '#6b6b6b', // Color when tab is inactive
-        headerShown: false, // Hide the header for all tabs to keep it clean
-      })}
-    >
-      <Tab.Screen name="Home" component={HomePage} />
-      <Tab.Screen name="Admin" component={AdminPage} options={{ tabBarLabel: 'Admin' }} />
-      <Tab.Screen name="Settings" component={SettingsPage} />
-      <Tab.Screen
-        name="Login"
-        options={{ tabBarLabel: 'Login' }}
-        children={(props) => (
-          <LoginPage
-            {...props}
-            setIsAuthenticated={() => console.log('Login Triggered')}
-          />
-        )}
-      />
-    </Tab.Navigator>
-  );
-};
-
-export default TabsLayout;
+export default AppNavigator;
