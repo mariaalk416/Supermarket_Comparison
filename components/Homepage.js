@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Animatable from 'react-native-animatable';
 
-// Importing local images
+// Importing images
 import RealTimePriceIcon from '../assets/images/pic1.jpg';
 import PersonalizedIcon from '../assets/images/pic2.png';
 import CompareIcon from '../assets/images/pic3.jpg';
@@ -26,12 +26,17 @@ const HomePage = ({ navigation }) => {
             <SubTitle>
               
             </SubTitle>
-            <SearchBar>
-              <SearchInput placeholder="Search for products..." placeholderTextColor="#aaa" />
-              <SearchButton>
-                <Icon name="search" size={20} color="#fff" />
-              </SearchButton>
-            </SearchBar>
+            <TouchableOpacity onPress={() => navigation.navigate('Search')}
+              activeOpacity={0.8}
+              style={{ width: '90%' }}>
+              <SearchBar>
+                <SearchInput onPress={() => navigation.navigate('Search')}
+              activeOpacity={0.8} placeholder="Search for products..." placeholderTextColor="#aaa"/>
+                <SearchButton>
+                  <Icon name="search" size={20} color="#fff" />
+                </SearchButton>
+              </SearchBar>
+            </TouchableOpacity>
           </HeroContent>
         </HeroGradient>
         <FeaturesSection>

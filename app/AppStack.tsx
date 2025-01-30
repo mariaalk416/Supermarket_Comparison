@@ -39,14 +39,12 @@ const AppStack = () => {
           component={AdminPage} 
           options={{ title: 'Admin Page' }} 
         />
-
-        {/* Manage Dropdowns Page */}
-        <Stack.Screen 
-          name="ManageDropdownsPage" 
-          component={ManageDropdownsPage} 
-          options={{ title: 'Manage Dropdowns' }} 
+        <Stack.Screen
+        name="ManageDropdownsPage"
+        component={ManageDropdownsPage}
+        options={{ title: 'Manage Dropdowns' }}
         />
-      </Stack.Navigator>
+        </Stack.Navigator>
     </NavigationContainer>
   );
 };

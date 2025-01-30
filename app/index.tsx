@@ -7,12 +7,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginPage from '../components/LoginPage';
 import ComparePage from '@/components/ComparePage';
 import LeafletPage from '@/components/LeafletPage';
-import WishlistPage from'@/components/WishlistPage';
+import WishlistPage from '@/components/WishlistPage';
 import TabsLayout from './(tabs)/_layout';
-import DropDown from '@/components/DropDown'
+import ManageDropdownsPage from '@/components/DropDown';
 import { View, ActivityIndicator } from 'react-native';
 import AppStack from './AppStack';
 import AdminPage from '../components/AdminPage';
+import SearchPage from '@/components/Search'; // Import the SearchProductsPage
 
 enum AuthState {
   UNKNOWN,
@@ -32,7 +33,7 @@ const Index = () => {
       await AsyncStorage.clear();
       console.log('AsyncStorage cleared for testing purposes.');
     };
-  
+
     clearStorageForTesting();
   }, []);
 
@@ -74,48 +75,59 @@ const Index = () => {
       </View>
     );
   };
-  
+
   return (
-    <Stack.Navigator screenOptions={{
-      headerTitle: () => <HeaderWithLogo />, // Custom header
-      headerStyle: {
-        backgroundColor: '#34c2b3', // Header background color
-      },
-      headerTitleAlign: 'center', // Center the header content
-    }}
-  >
+    <Stack.Navigator
+      screenOptions={{
+        headerTitle: () => <HeaderWithLogo />, // Custom header
+        headerStyle: {
+          backgroundColor: '#34c2b3', // Header background color
+        },
+        headerTitleAlign: 'center', // Center the header content
+      }}
+    >
       {authState === AuthState.AUTHENTICATED ? (
         <>
-            {console.log('Rendering Home Stack')} 
-        <Stack.Screen
-          name="TabsLayout"
-          component={TabsLayout}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen name="Wishlist" component={WishlistPage} options={{ title: 'Wishlist' }} />
-        <Stack.Screen name="Leaflets" component={LeafletPage} options={{ title: 'Leaflets' }} />
-        <Stack.Screen name="ComparePrices" component={ComparePage} options={{ title: 'Compare Prices' }} />
-        <Stack.Screen
-              name="Admin"
-              component={AdminPage}
-              initialParams={{ products, setProducts }}
-              options={{ title: 'Admin Page' }}
-            />
-        <Stack.Screen name = "DropDown" component = {DropDown} options={{ title: 'DropDown Page' }}/>
+          {console.log('Rendering Home Stack')}
+          <Stack.Screen
+            name="TabsLayout"
+            component={TabsLayout}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="Wishlist" component={WishlistPage} options={{ title: 'Wishlist' }} />
+          <Stack.Screen name="Leaflets" component={LeafletPage} options={{ title: 'Leaflets' }} />
+          <Stack.Screen name="ComparePrices" component={ComparePage} options={{ title: 'Compare Prices' }} />
+          <Stack.Screen
+            name="Admin"
+            component={AdminPage}
+            initialParams={{ products, setProducts }}
+            options={{ title: 'Admin Page' }}
+          />
+          <Stack.Screen
+            name="ManageDropdownsPage"
+            component={ManageDropdownsPage}
+            options={{ title: 'Manage Dropdowns' }}
+          />
+
+          <Stack.Screen
+            name="Search"
+            component={SearchPage}
+            options={{ title: 'Search' }}
+          />
         </>
       ) : (
         <>
-            {console.log('Rendering Login Stack')}
-        <Stack.Screen
-          name="Login"
-          children={(props) => (
-            <LoginPage
-              {...props}
-              setIsAuthenticated={() => setAuthState(AuthState.AUTHENTICATED)}
-            />
-          )}
-          options={{ headerShown: false }}
-        />
+          {console.log('Rendering Login Stack')}
+          <Stack.Screen
+            name="Login"
+            children={(props) => (
+              <LoginPage
+                {...props}
+                setIsAuthenticated={() => setAuthState(AuthState.AUTHENTICATED)}
+              />
+            )}
+            options={{ headerShown: false }}
+          />
         </>
       )}
     </Stack.Navigator>

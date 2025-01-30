@@ -1,17 +1,68 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import { View, Text, TextInput, Image, TouchableOpacity, FlatList, StyleSheet, Alert, } from 'react-native';
+import DropDownPicker from 'react-native-dropdown-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const AdminPage = ({ route }) => {
-  const [productName, setProductName] = useState('');
-  const [storeName, setStoreName] = useState('');
-  const [storePrice, setStorePrice] = useState('');
+
+const AdminPage = ({ route, navigation }) => {
   const [productList, setProductList] = useState(route.params?.products || []);
-  const [stores, setStores] = useState(route.params?.stores || ['Store A', 'Store B']);
-  const [products, setProducts] = useState(route.params?.productNames || ['Product X', 'Product Y']);
+  const [stores, setStores] = useState(route.params?.stores || ['store A', 'store B']);
+  const [products, setProducts] = useState(route.params?.productNames || ['product X', 'product Y']);
+  const [uploading, setUploading] = useState(false);
+
+  const pickImage = async () => {
+    try{
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Denied",
+          "Sorry, gallery permission is required to upload images."
+        );
+      } else {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 1,
+        });
+        
+
+        if (!result.canceled) {
+          const uri = result.assets[0].uri; // Extract the image URI
+
+          // Save the image URI to AsyncStorage
+          const storedLeaflets =
+            JSON.parse(await AsyncStorage.getItem("leaflets")) || [];
+          const newLeaflets = [...storedLeaflets, uri];
+
+          await AsyncStorage.setItem("leaflets", JSON.stringify(newLeaflets));
+
+          Alert.alert("Success", "Image uploaded successfully!");
+        }
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Something went wrong. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Dropdown state for products
+  const [openProduct, setOpenProduct] = useState(false);
+  const [productName, setProductName] = useState(null);
+
+  // Dropdown state for stores
+  const [openStore, setOpenStore] = useState(false);
+  const [storeName, setStoreName] = useState(null);
+
+  const [storePrice, setStorePrice] = useState('');
 
   const handleAddProduct = () => {
-    if (!productName.trim() || !storeName.trim() || !storePrice.trim()) {
+    if (!productName || !storeName || !storePrice.trim()) {
       alert('Please select product, store, and price.');
       return;
     }
@@ -23,51 +74,56 @@ const AdminPage = ({ route }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Admin - Add Products</Text>
-      <TouchableOpacity 
-          style={styles.manageButton}
-          onPress={() => navigation.navigate('ManageDropdownsPage', { stores, products })}
-        >
-        <Text style={styles.buttonText}>Manage Dropdowns</Text>
-        </TouchableOpacity>
-      <View style={styles.inputContainer}>
-        {/* Navigation Button */}
-        
-        {/* Product Dropdown */}
-        <View style={styles.dropdownContainer}>
-          <Picker
-            selectedValue={productName}
-            style={styles.picker}
-            onValueChange={(itemValue) => setProductName(itemValue)}
-          >
-            <Picker.Item label="Select Product" value="" />
-            {products.map((product, index) => (
-              <Picker.Item key={index} label={product} value={product} />
-            ))}
-          </Picker>
-        </View>
+      <LinearGradient
+        colors={['#8ae1e6', '#34c2b3']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <Text style={styles.header}>Admin - Add Products</Text>
+      </LinearGradient>
 
-        {/* Store Dropdown */}
-        <View style={styles.dropdownContainer}>
-          <Picker
-            selectedValue={storeName}
-            style={styles.picker}
-            onValueChange={(itemValue) => setStoreName(itemValue)}
-          >
-            <Picker.Item label="Select Store" value="" />
-            {stores.map((store, index) => (
-              <Picker.Item key={index} label={store} value={store} />
-            ))}
-          </Picker>
-        </View>
-      </View>
+      {/* Manage Dropdowns Button */}
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('ManageDropdownsPage', { stores, products })}
+      >
+        <Text style={styles.buttonText}>Manage Dropdowns</Text>
+      </TouchableOpacity>
+
+      {/* Product Dropdown */}
+      <DropDownPicker
+        open={openProduct}
+        value={productName}
+        items={products.map((product) => ({ label: product, value: product }))}
+        setOpen={setOpenProduct}
+        setValue={setProductName}
+        placeholder="Select Product"
+        style={styles.dropdown}
+        dropDownContainerStyle={styles.dropdownContainer}
+      />
+
+      {/* Store Dropdown */}
+      <DropDownPicker
+        open={openStore}
+        value={storeName}
+        items={stores.map((store) => ({ label: store, value: store }))}
+        setOpen={setOpenStore}
+        setValue={setStoreName}
+        placeholder="Select Store"
+        style={styles.dropdown}
+        dropDownContainerStyle={styles.dropdownContainer}
+        zIndex={1000} // Ensure dropdowns don’t overlap each other
+        zIndexInverse={500}
+      />
 
       {/* Price Input */}
       <TextInput
         style={styles.input}
-        placeholder="Price (e.g., $10)"
+        placeholder="Enter Price"
         value={storePrice}
         onChangeText={setStorePrice}
+        keyboardType="numeric"
       />
 
       {/* Add Button */}
@@ -87,6 +143,16 @@ const AdminPage = ({ route }) => {
           </View>
         )}
       />
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={pickImage}
+        disabled={uploading}
+      >
+        <Text style={styles.buttonText}>
+          {uploading ? "Uploading..." : "Upload Image"}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -94,74 +160,74 @@ const AdminPage = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#e0f7f9',
     padding: 20,
-    backgroundColor: '#f9f9f9',
+  },
+  headerGradient: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
   },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: '#fff',
     textAlign: 'center',
-    marginVertical: 20,
-    color: '#34c2b3',
   },
-  inputContainer: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    justifyContent: 'space-between',
-  },
-  dropdownContainer: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    marginRight: 10,
-    backgroundColor: '#fff',
-  },
-  picker: {
-    height: 50,
-    color: '#333',
-  },
-  input: {
-    padding: 10,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    marginBottom: 10,
-  },
-  addButton: {
+  button: {
     backgroundColor: '#34c2b3',
-    paddingHorizontal: 15,
-    justifyContent: 'center',
-    borderRadius: 8,
-    marginTop: 10,
-    marginBottom:10,
+    padding: 15,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginBottom: 20,
+    elevation: 5, // Shadow for Android
   },
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
-    textAlign: 'center',
+    fontSize: 16,
+  },
+  dropdown: {
+    backgroundColor: '#fff',
+    borderWidth: 0,
+    borderRadius: 25,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+    elevation: 3, // For shadow effect
+  },
+  dropdownContainer: {
+    borderWidth: 0,
+    borderRadius: 15,
+    elevation: 3,
+  },
+  input: {
+    backgroundColor: '#fff',
+    borderRadius: 25,
+    padding: 15,
+    fontSize: 16,
+    marginBottom: 15,
+    elevation: 3,
+  },
+  addButton: {
+    backgroundColor: '#34c2b3',
+    padding: 15,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginTop: 10,
+    elevation: 5,
   },
   productItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 15,
     backgroundColor: '#fff',
+    borderRadius: 15,
     marginBottom: 10,
-    borderRadius: 8,
     elevation: 3,
   },
   productText: {
     fontSize: 16,
     color: '#333',
-  },
-  manageButton: {
-    backgroundColor: '#34c2b3',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom:10,
   },
 });
 
