@@ -19,7 +19,7 @@ const HomePage = ({ navigation }) => {
           colors={['#8ae1e6', '#34c2b3']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 20, marginBottom: 20, padding: 20 }}
+          style={{ borderRadius: 20, padding: 20 }}
         >
           <HeroContent>
             <Title>Discover & Save with Supermarket Price Comparisons!</Title>

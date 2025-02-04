@@ -35,7 +35,7 @@ const Tabs = ({ setIsAuthenticated }) => (
   >
     <Tab.Screen name="Home" component={HomePage} />
     <Tab.Screen name="Admin" component={AdminPage} />
-    <Tab.Screen name="DropDown" component={DropDown} />
+    
     <Tab.Screen
       name="Settings"
       children={() => <SettingsPage setIsAuthenticated={setIsAuthenticated} />}

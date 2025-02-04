@@ -10,6 +10,7 @@ import LeafletPage from '@/components/LeafletPage';
 import WishlistPage from '@/components/WishlistPage';
 import TabsLayout from './(tabs)/_layout';
 import ManageDropdownsPage from '@/components/DropDown';
+import ProductPage from "@/components/ProductPage"
 import { View, ActivityIndicator } from 'react-native';
 import AppStack from './AppStack';
 import AdminPage from '../components/AdminPage';
@@ -97,6 +98,7 @@ const Index = () => {
           <Stack.Screen name="Wishlist" component={WishlistPage} options={{ title: 'Wishlist' }} />
           <Stack.Screen name="Leaflets" component={LeafletPage} options={{ title: 'Leaflets' }} />
           <Stack.Screen name="ComparePrices" component={ComparePage} options={{ title: 'Compare Prices' }} />
+          <Stack.Screen name="ProductPage" component={ProductPage} options={{title: 'Product Page'}}/>
           <Stack.Screen
             name="Admin"
             component={AdminPage}
