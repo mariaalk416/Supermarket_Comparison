@@ -12,9 +12,10 @@ import TabsLayout from './(tabs)/_layout';
 import ManageDropdownsPage from '@/components/DropDown';
 import ProductPage from "@/components/ProductPage"
 import { View, ActivityIndicator } from 'react-native';
-import AppStack from './AppStack';
 import AdminPage from '../components/AdminPage';
-import SearchPage from '@/components/Search'; // Import the SearchProductsPage
+import SearchPage from '@/components/Search'; 
+import Cart from '@/components/Cart';
+import Map from '@/components/Map';
 
 enum AuthState {
   UNKNOWN,
@@ -99,6 +100,8 @@ const Index = () => {
           <Stack.Screen name="Leaflets" component={LeafletPage} options={{ title: 'Leaflets' }} />
           <Stack.Screen name="ComparePrices" component={ComparePage} options={{ title: 'Compare Prices' }} />
           <Stack.Screen name="ProductPage" component={ProductPage} options={{title: 'Product Page'}}/>
+          <Stack.Screen name="Cart" component={Cart} options={{title: 'Cart'}}/>
+          <Stack.Screen name="Map" component={Map} options={{title: 'Map'}}/>
           <Stack.Screen
             name="Admin"
             component={AdminPage}

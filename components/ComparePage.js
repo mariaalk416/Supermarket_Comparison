@@ -1,63 +1,99 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, TextInput,} from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Image,
+  Alert,
+  TouchableOpacity,
+} from 'react-native';
+import DropDownPicker from 'react-native-dropdown-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ComparePage = ({ navigation }) => {
-  const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
+const ComparePage = () => {
+  const [products, setProducts] = useState([]); 
+  const [filteredProducts, setFilteredProducts] = useState([]); 
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
-  // Load products from AsyncStorage
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     try {
       const storedProducts = await AsyncStorage.getItem('products');
       if (storedProducts) {
         const parsedProducts = JSON.parse(storedProducts);
         setProducts(parsedProducts);
         setFilteredProducts(parsedProducts);
+
         const uniqueCategories = [
           ...new Set(parsedProducts.map((product) => product.category)),
         ];
         setCategories(uniqueCategories);
       }
     } catch (error) {
+      Alert.alert('Error', 'Failed to load products. Please try again.');
       console.error('Error loading products:', error);
     }
-  };
-
+  }, []);
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [loadProducts]);
 
-  const filterByCategory = (category) => {
-    if (category === '') {
-      setFilteredProducts(products); // Show all products
-    } else {
-      const filtered = products.filter(
-        (product) => product.category === category
-      );
-      setFilteredProducts(filtered);
+
+  const filterByCategory = useCallback(
+    (category) => {
+      if (category === null) {
+        setFilteredProducts(products);
+      } else {
+        const filtered = products.filter(
+          (product) => product.category === category
+        );
+        setFilteredProducts(filtered);
+      }
+      setSelectedCategory(category);
+    },
+    [products]
+  );
+
+  const dropdownItems = useMemo(() => {
+    return [
+      { label: 'All Categories', value: null },
+      ...categories.map((cat) => ({ label: cat, value: cat })),
+    ];
+  }, [categories]);
+
+
+  const addToCart = async (product) => {
+    try {
+      const storedCart = await AsyncStorage.getItem('cart');
+      const cart = storedCart ? JSON.parse(storedCart) : [];
+      cart.push(product);
+      await AsyncStorage.setItem('cart', JSON.stringify(cart));
+      Alert.alert('Added', 'Product added to cart');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add product to cart');
+      console.error('Error adding to cart:', error);
     }
-    setSelectedCategory(category);
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Compare Prices</Text>
 
-      {/* Category Filter Dropdown */}
-      <View style={styles.filterContainer}>
-        <TextInput
-          style={styles.filterInput}
-          placeholder="Select Category"
-          value={selectedCategory}
-          onChangeText={filterByCategory}
-        />
-      </View>
+      <DropDownPicker
+        open={categoryDropdownOpen}
+        value={selectedCategory}
+        items={dropdownItems}
+        setOpen={setCategoryDropdownOpen}
+        setValue={setSelectedCategory}
+        onChangeValue={filterByCategory}
+        placeholder="Filter by Category"
+        style={styles.dropdown}
+        dropDownContainerStyle={styles.dropdownContainer}
+      />
 
-      {/* Product List */}
       <FlatList
         data={filteredProducts}
         keyExtractor={(item, index) => index.toString()}
@@ -67,11 +103,16 @@ const ComparePage = ({ navigation }) => {
             <View style={styles.productDetails}>
               <Text style={styles.productName}>{item.name}</Text>
               <Text style={styles.productCategory}>{item.category}</Text>
-              <Text style={styles.productPrice}>
-                {item.price}€ ({(item.price / item.weight).toFixed(2)}€/kg)
-              </Text>
+              <Text style={styles.productPrice}>€{item.price}</Text>
               <Text style={styles.productStore}>Store: {item.store}</Text>
             </View>
+   
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => addToCart(item)}
+            >
+              <Text style={styles.addButtonText}>Add</Text>
+            </TouchableOpacity>
           </View>
         )}
         ListEmptyComponent={
@@ -92,17 +133,19 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginVertical: 20,
+    marginBottom: 20,
     color: '#34c2b3',
   },
-  filterContainer: {
-    marginBottom: 15,
-  },
-  filterInput: {
+  dropdown: {
     backgroundColor: '#fff',
+    borderWidth: 0,
     borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
+    marginBottom: 15,
+    elevation: 2,
+  },
+  dropdownContainer: {
+    borderWidth: 0,
+    borderRadius: 8,
     elevation: 2,
   },
   productCard: {
@@ -112,6 +155,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 10,
     elevation: 3,
+    alignItems: 'center',
   },
   productImage: {
     width: 80,
@@ -146,6 +190,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#999',
     marginTop: 20,
+  },
+  addButton: {
+    backgroundColor: '#34c2b3',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 

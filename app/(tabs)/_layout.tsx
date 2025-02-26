@@ -5,7 +5,9 @@ import HomePage from '../../components/Homepage';
 import LoginPage from '@/components/LoginPage';
 import AdminPage from '@/components/AdminPage';
 import SettingsPage from '@/components/Settings';
+import Cart from '@/components/Cart'
 import DropDown from '@/components/DropDown';
+import Map from '@/components/Map';
 import { Icon } from 'react-native-elements';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -24,7 +26,12 @@ const Tabs = ({ setIsAuthenticated }) => (
           iconName = 'cog';
         } else if (route.name === 'Admin') {
           iconName = 'shield';
+        } else if (route.name === 'Cart') {
+          iconName = 'shopping-cart';
+        }else if (route.name === 'Map'){
+          iconName = 'circle'
         }
+        
 
         return <Icon name={iconName} type="font-awesome" color={color} size={size} />;
       },
@@ -33,11 +40,13 @@ const Tabs = ({ setIsAuthenticated }) => (
       headerShown: false,
     })}
   >
-    <Tab.Screen name="Home" component={HomePage} />
-    <Tab.Screen name="Admin" component={AdminPage} />
-    
+    <Tab.Screen name = "Home" component={HomePage}/>
+    <Tab.Screen name = "Admin" component={AdminPage}/>
+
+    <Tab.Screen name = "Cart" component={Cart}/>
+    <Tab.Screen name = "Map" component={Map}/>
     <Tab.Screen
-      name="Settings"
+      name = "Settings"
       children={() => <SettingsPage setIsAuthenticated={setIsAuthenticated} />}
     />
   </Tab.Navigator>

@@ -1,38 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, Keyboard, Image, SafeAreaView, } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Keyboard,
+  Image,
+  SafeAreaView,
+  TouchableWithoutFeedback,
+} from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as ImagePicker from "expo-image-picker";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AdminPage = ({ route, navigation }) => {
-  // Initialize productList with passed route parameters or an empty array.
   const [productList, setProductList] = useState(route.params?.products || []);
   const [stores, setStores] = useState(route.params?.stores || ['Store A', 'Store B']);
   const [products, setProducts] = useState(route.params?.productNames || ['Product X', 'Product Y']);
   const [categories, setCategories] = useState(route.params?.categories || ['Category A', 'Category B']);
-  const [uploading, setUploading] = useState(false);
 
-  // Dropdown state for products
+  
   const [openProduct, setOpenProduct] = useState(false);
   const [productName, setProductName] = useState(null);
-
-  // Dropdown state for stores
   const [openStore, setOpenStore] = useState(false);
   const [storeName, setStoreName] = useState(null);
-
   const [openCategory, setOpenCategory] = useState(false);
   const [category, setCategory] = useState(null);
 
   const [storePrice, setStorePrice] = useState('');
   const [productImage, setProductImage] = useState(null);
-
   const [leafletImage, setLeafletImage] = useState(null);
- 
-  // Save products to AsyncStorage
-  const saveProducts = async (products) => {
+
+  
+  const saveProducts = async (productsArray) => {
     try {
-      await AsyncStorage.setItem('products', JSON.stringify(products));
+      await AsyncStorage.setItem('products', JSON.stringify(productsArray));
     } catch (error) {
       console.error('Error saving products:', error);
     }
@@ -40,10 +46,9 @@ const AdminPage = ({ route, navigation }) => {
 
   const handleAddProduct = () => {
     if (!productName || !storeName || !storePrice.trim() || !category || !productImage) {
-      alert('Please select product, store, and price.');
+      alert('Please select product, store, price, category, and image.');
       return;
     }
-
     const newProduct = {
       name: productName,
       store: storeName,
@@ -63,49 +68,56 @@ const AdminPage = ({ route, navigation }) => {
   const uploadLeaflet = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Gallery permission is required to upload leaflets."
-        );
-      } else {
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          aspect: [4, 3],
-          quality: 1,
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Gallery permission is required to upload leaflets.');
+        return;
+      }
+  
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+  
+      if (!result.canceled) {
+        const uri = result.assets[0].uri;
+        setLeafletImage(uri);
+  
+        const formData = new FormData();
+        formData.append('leaflet', {
+          uri: uri,
+          name: 'leaflet.jpg', 
+          type: 'image/jpeg', 
         });
-
-        if (!result.canceled) {
-          const uri = result.assets[0].uri;
-
-          // Save leaflet image URI to AsyncStorage
-          const storedLeaflets = JSON.parse(await AsyncStorage.getItem("leaflets")) || [];
-          const updatedLeaflets = [...storedLeaflets, uri];
-
-          await AsyncStorage.setItem("leaflets", JSON.stringify(updatedLeaflets));
-          setLeafletImage(uri);
-
-          Alert.alert("Success", "Leaflet uploaded successfully!");
+  
+        const response = await fetch('http://192.168.1.103:5001/upload-leaflet', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+  
+        const data = await response.json();
+        if (response.ok) {
+          Alert.alert('Success', 'Leaflet uploaded & emails sent!');
+        } else {
+          Alert.alert('Error', data.message || 'Failed to upload leaflet.');
         }
       }
     } catch (error) {
-      console.error("Error uploading leaflet:", error);
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      console.error('Error uploading leaflet:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
     }
   };
-
+  
 
   const pickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Gallery permission is required to upload images."
-        );
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Gallery permission is required to upload images.');
       } else {
         const result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ['images'],
@@ -113,14 +125,13 @@ const AdminPage = ({ route, navigation }) => {
           aspect: [4, 3],
           quality: 1,
         });
-
         if (!result.canceled) {
-          const uri = result.assets[0].uri; // Extract image URI
+          const uri = result.assets[0].uri;
           setProductImage(uri);
         }
       }
     } catch (error) {
-      console.error("Error picking image:", error);
+      console.error('Error picking image:', error);
     }
   };
 
@@ -130,20 +141,20 @@ const AdminPage = ({ route, navigation }) => {
     if (route.params?.categories) setCategories(route.params.categories);
   }, [route.params]);
 
-
-  // Filter out empty products (you can adjust the conditions as needed)
+  
   const filteredProducts = productList.filter(
-    item => item.name && item.store && item.price
+    (item) => item.name && item.store && item.price
   );
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-        style={{ flex: 1 }}
-      >
-      
-        <View style={styles.container}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.container}
+          enableOnAndroid={true}
+          keyboardShouldPersistTaps="handled"
+          extraScrollHeight={20}
+        >
           <LinearGradient
             colors={['#8ae1e6', '#34c2b3']}
             start={{ x: 0, y: 0 }}
@@ -153,27 +164,28 @@ const AdminPage = ({ route, navigation }) => {
             <Text style={styles.header}>Admin - Add Products</Text>
           </LinearGradient>
 
-          {/* Manage Dropdowns Button */}
           <TouchableOpacity
             style={styles.button}
-            onPress={() => navigation.navigate('ManageDropdownsPage', { stores, products, categories })}
+            onPress={() =>
+              navigation.navigate('ManageDropdownsPage', { stores, products, categories })
+            }
           >
             <Text style={styles.buttonText}>Manage Dropdowns</Text>
           </TouchableOpacity>
 
-          {/* Product Dropdown */}
           <DropDownPicker
             open={openProduct}
             value={productName}
-            items={products.map((product) => ({ label: product, value: product }))}
+            items={products.map((prod) => ({ label: prod, value: prod }))}
             setOpen={setOpenProduct}
             setValue={setProductName}
             placeholder="Select Product"
             style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
+            dropDownContainerStyle={{ ...styles.dropdownContainer, zIndex: 3000 }}
+            zIndex={3000}
+            listMode="SCROLLVIEW"
           />
 
-          {/* Store Dropdown */}
           <DropDownPicker
             open={openStore}
             value={storeName}
@@ -182,10 +194,11 @@ const AdminPage = ({ route, navigation }) => {
             setValue={setStoreName}
             placeholder="Select Store"
             style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
+            dropDownContainerStyle={{ ...styles.dropdownContainer, zIndex: 2000 }}
+            zIndex={2000}
+            listMode="SCROLLVIEW"
           />
 
-          {/* Category Dropdown */}
           <DropDownPicker
             open={openCategory}
             value={category}
@@ -194,10 +207,11 @@ const AdminPage = ({ route, navigation }) => {
             setValue={setCategory}
             placeholder="Select Category"
             style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
+            dropDownContainerStyle={{ ...styles.dropdownContainer, zIndex: 1000 }}
+            zIndex={1000}
+            listMode="SCROLLVIEW"
           />
 
-          {/* Price Input */}
           <TextInput
             style={styles.input}
             placeholder="Enter Price"
@@ -206,54 +220,40 @@ const AdminPage = ({ route, navigation }) => {
             keyboardType="numeric"
           />
 
-          {/* Image Picker */}
           <TouchableOpacity style={styles.addButton} onPress={pickImage}>
             <Text style={styles.buttonText}>Upload Product Image</Text>
           </TouchableOpacity>
           {productImage && <Image source={{ uri: productImage }} style={styles.previewImage} />}
 
-
-          {/* Add Button */}
           <TouchableOpacity style={styles.addButton} onPress={handleAddProduct}>
             <Text style={styles.buttonText}>Add</Text>
           </TouchableOpacity>
 
-          
-          <View style={{ flex: 1 }}>
-            <FlatList
-              data={productList}
-              keyExtractor={(item, index) => index.toString()}
-              renderItem={({ item }) => (
-                <View style={styles.productItem}>
-                  <Image source={{ uri: item.image }} style={styles.productImage} />
-                  <View>
-                    <Text style={styles.productText}>{item.name}</Text>
-                    <Text style={styles.productText}>{item.store}</Text>
-                    <Text style={styles.productText}>{item.category}</Text>
-                    <Text style={styles.productText}>{item.price}€</Text>
-                  </View>
-                </View>
-              )}
-            />
-          </View>
-          
+          {filteredProducts.map((item, index) => (
+            <View key={index} style={styles.productItem}>
+              <Image source={{ uri: item.image }} style={styles.productImage} />
+              <View>
+                <Text style={styles.productText}>{item.name}</Text>
+                <Text style={styles.productText}>{item.store}</Text>
+                <Text style={styles.productText}>{item.category}</Text>
+                <Text style={styles.productText}>{item.price}€</Text>
+              </View>
+            </View>
+          ))}
 
-          {/* Leaflet Upload */}
           <TouchableOpacity style={styles.addButton} onPress={uploadLeaflet}>
             <Text style={styles.buttonText}>Upload Leaflet</Text>
           </TouchableOpacity>
           {leafletImage && <Image source={{ uri: leafletImage }} style={styles.previewImage} />}
-
-
-        </View>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#e0f7f9',
     padding: 20,
   },
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     alignItems: 'center',
     marginBottom: 20,
-    elevation: 5, // Shadow for Android
+    elevation: 5,
   },
   buttonText: {
     color: '#fff',
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     marginBottom: 15,
     paddingHorizontal: 10,
-    elevation: 3, // For shadow effect
+    elevation: 3,
   },
   dropdownContainer: {
     borderWidth: 0,
@@ -310,7 +310,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     elevation: 5,
   },
-
   productItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -324,12 +323,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
-
-  scrollContainer: {
-    flex: 1,
-    padding: 20,
-  },
-
   previewImage: {
     width: 100,
     height: 100,
@@ -337,15 +330,12 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     alignSelf: 'center',
   },
-
   productImage: {
     width: 60,
     height: 60,
     borderRadius: 10,
     marginRight: 10,
   },
-  
 });
-
 
 export default AdminPage;
