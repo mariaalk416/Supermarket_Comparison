@@ -79,15 +79,7 @@ const Index = () => {
   };
 
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerTitle: () => <HeaderWithLogo />, // Custom header
-        headerStyle: {
-          backgroundColor: '#34c2b3', // Header background color
-        },
-        headerTitleAlign: 'center', // Center the header content
-      }}
-    >
+    <Stack.Navigator screenOptions={{ headerBackTitle: '' }}>
       {authState === AuthState.AUTHENTICATED ? (
         <>
           {console.log('Rendering Home Stack')}

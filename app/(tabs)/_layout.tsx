@@ -29,7 +29,7 @@ const Tabs = ({ setIsAuthenticated }) => (
         } else if (route.name === 'Cart') {
           iconName = 'shopping-cart';
         }else if (route.name === 'Map'){
-          iconName = 'circle'
+          iconName = 'map'
         }
         
 
@@ -53,13 +53,13 @@ const Tabs = ({ setIsAuthenticated }) => (
 );
 
 const AppNavigator = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Start as not authenticated
+  const [isAuthenticated, setIsAuthenticated] = useState(false); 
 
   useEffect(() => {
 
     const handleLogin = async () => {
       try {
-        await AsyncStorage.setItem('loginname', 'userSession'); // Mock login session
+        await AsyncStorage.setItem('loginname', 'userSession'); 
         setIsAuthenticated(true);
       } catch (error) {
         console.error('Error during login:', error);
@@ -78,7 +78,7 @@ const AppNavigator = () => {
     const checkAuthentication = async () => {
       const loginName = await AsyncStorage.getItem('loginname');
       if (loginName) {
-        setIsAuthenticated(true); // User is authenticated
+        setIsAuthenticated(true); 
       }
     };
 
@@ -86,7 +86,7 @@ const AppNavigator = () => {
   }, []);
 
   return (
-    <Stack.Navigator>
+    <Stack.Navigator >
       {isAuthenticated ? (
         <Stack.Screen
           name="Main"
