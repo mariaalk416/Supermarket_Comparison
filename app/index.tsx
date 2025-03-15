@@ -16,6 +16,11 @@ import AdminPage from '../components/AdminPage';
 import SearchPage from '@/components/Search'; 
 import Cart from '@/components/Cart';
 import Map from '@/components/Map';
+import { LogBox } from 'react-native';
+
+LogBox.ignoreLogs([
+  'Error: Attempted to navigate before mounting the Root Layout component.',
+]);
 
 enum AuthState {
   UNKNOWN,

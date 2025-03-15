@@ -19,9 +19,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AdminPage = ({ route, navigation }) => {
   const [productList, setProductList] = useState(route.params?.products || []);
-  const [stores, setStores] = useState(route.params?.stores || ['Store A', 'Store B']);
-  const [products, setProducts] = useState(route.params?.productNames || ['Product X', 'Product Y']);
-  const [categories, setCategories] = useState(route.params?.categories || ['Category A', 'Category B']);
+  const [stores, setStores] = useState(route.params?.stores || []);
+  const [products, setProducts] = useState(route.params?.productNames || []);
+  const [categories, setCategories] = useState(route.params?.categories || []);
 
   
   const [openProduct, setOpenProduct] = useState(false);
@@ -49,22 +49,38 @@ const AdminPage = ({ route, navigation }) => {
       alert('Please select product, store, price, category, and image.');
       return;
     }
+  
     const newProduct = {
+      id: `${productName}-${storeName}-${Date.now()}`, // Ensure unique ID
       name: productName,
       store: storeName,
       price: storePrice,
       category,
       image: productImage,
     };
-
-    const updatedProducts = [...productList, newProduct];
-    setProductList(updatedProducts);
-    saveProducts(updatedProducts);
+  
+    // Load existing products from AsyncStorage to preserve old ones
+    AsyncStorage.getItem('products')
+      .then((storedProducts) => {
+        const existingProducts = storedProducts ? JSON.parse(storedProducts) : [];
+  
+        // Ensure only valid products are stored
+        const updatedProducts = [...existingProducts, newProduct];
+  
+        setProductList(updatedProducts);
+        return AsyncStorage.setItem('products', JSON.stringify(updatedProducts));
+      })
+      .catch((error) => console.error('Error updating products:', error));
+  
+    // Reset form fields
+    setProductName(null);
+    setStoreName(null);
+    setCategory(null);
     setStorePrice('');
     setProductImage(null);
     Keyboard.dismiss();
   };
-
+  
   const uploadLeaflet = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -91,7 +107,7 @@ const AdminPage = ({ route, navigation }) => {
           type: 'image/jpeg', 
         });
   
-        const response = await fetch('http://192.168.1.103:5001/upload-leaflet', {
+        const response = await fetch('http://192.168.1.104:5002/upload-leaflet', {
           method: 'POST',
           body: formData,
           headers: {
@@ -102,6 +118,9 @@ const AdminPage = ({ route, navigation }) => {
         const data = await response.json();
         if (response.ok) {
           Alert.alert('Success', 'Leaflet uploaded & emails sent!');
+          const storedLeaflets = JSON.parse(await AsyncStorage.getItem("leaflets")) || [];
+          const newLeaflets = [...storedLeaflets, uri];
+          await AsyncStorage.setItem("leaflets", JSON.stringify(newLeaflets));
         } else {
           Alert.alert('Error', data.message || 'Failed to upload leaflet.');
         }
@@ -112,12 +131,15 @@ const AdminPage = ({ route, navigation }) => {
     }
   };
   
-
   const pickImage = async () => {
-    try {
+    try{
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Gallery permission is required to upload images.');
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Denied",
+          "Sorry, gallery permission is required to upload images."
+        );
       } else {
         const result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ['images'],
@@ -125,15 +147,30 @@ const AdminPage = ({ route, navigation }) => {
           aspect: [4, 3],
           quality: 1,
         });
+        
+
         if (!result.canceled) {
-          const uri = result.assets[0].uri;
-          setProductImage(uri);
+          const uri = result.assets[0].uri; // Extract the image URI
+
+          // Save the image URI to AsyncStorage
+          const storedLeaflets =
+            JSON.parse(await AsyncStorage.getItem("leaflets")) || [];
+          const newLeaflets = [...storedLeaflets, uri];
+
+          await AsyncStorage.setItem("leaflets", JSON.stringify(newLeaflets));
+
+          Alert.alert("Success", "Image uploaded successfully!");
         }
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Something went wrong. Please try again.");
+    } finally {
+      setUploading(false);
     }
   };
+
+  
 
   useEffect(() => {
     if (route.params?.stores) setStores(route.params.stores);
@@ -167,7 +204,16 @@ const AdminPage = ({ route, navigation }) => {
           <TouchableOpacity
             style={styles.button}
             onPress={() =>
-              navigation.navigate('ManageDropdownsPage', { stores, products, categories })
+              navigation.navigate('ManageDropdownsPage', {
+                stores,
+                products,
+                categories,
+                onDropdownUpdate: (updatedStores, updatedProducts, updatedCategories) => {
+                  setStores(updatedStores);
+                  setProducts(updatedProducts);
+                  setCategories(updatedCategories);
+                },
+              })
             }
           >
             <Text style={styles.buttonText}>Manage Dropdowns</Text>
@@ -185,6 +231,7 @@ const AdminPage = ({ route, navigation }) => {
             zIndex={3000}
             listMode="SCROLLVIEW"
           />
+
 
           <DropDownPicker
             open={openStore}
@@ -229,18 +276,17 @@ const AdminPage = ({ route, navigation }) => {
             <Text style={styles.buttonText}>Add</Text>
           </TouchableOpacity>
 
-          {filteredProducts.map((item, index) => (
-            <View key={index} style={styles.productItem}>
-              <Image source={{ uri: item.image }} style={styles.productImage} />
-              <View>
-                <Text style={styles.productText}>{item.name}</Text>
-                <Text style={styles.productText}>{item.store}</Text>
-                <Text style={styles.productText}>{item.category}</Text>
-                <Text style={styles.productText}>{item.price}€</Text>
-              </View>
+          {filteredProducts.map((item) => (
+          <View key={item.id} style={styles.productItem}>
+            <Image source={{ uri: item.image }} style={styles.productImage} />
+            <View>
+              <Text style={styles.productText}>{item.name}</Text>
+              <Text style={styles.productText}>{item.store}</Text>
+              <Text style={styles.productText}>{item.category}</Text>
+              <Text style={styles.productText}>{item.price}€</Text>
             </View>
-          ))}
-
+          </View>
+        ))}
           <TouchableOpacity style={styles.addButton} onPress={uploadLeaflet}>
             <Text style={styles.buttonText}>Upload Leaflet</Text>
           </TouchableOpacity>

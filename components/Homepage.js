@@ -6,14 +6,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Animatable from 'react-native-animatable';
 
-// Importing images
+
 import RealTimePriceIcon from '../assets/images/pic1.jpg';
 import PersonalizedIcon from '../assets/images/pic2.png';
 import CompareIcon from '../assets/images/pic3.jpg';
 
 const HomePage = ({ navigation }) => {
   return (
-    <SafeAreaContainer edges={['left', 'right', 'bottom']}>
+    <SafeAreaContainer edges={['left', 'right']}>
       <ScrollContainer contentContainerStyle={{ flexGrow: 1, paddingBottom: 115 }}>
         <HeroGradient
           colors={['#8ae1e6', '#34c2b3']}
@@ -177,13 +177,15 @@ const CardGradient = styled(LinearGradient)`
   align-items: center;
   position: relative;
   overflow: hidden;
-  elevation: 5; 
+  elevation: 5;
+  border: 1px solid #e0f7f9;
 `;
 
 const CardIcon = styled(Image)`
   width: 60px;
   height: 60px;
   margin-right: 15px;
+  border-radius: 8px;
 `;
 
 const FeatureContent = styled(View)`

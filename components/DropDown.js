@@ -1,13 +1,30 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, Keyboard, TouchableWithoutFeedback, } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Keyboard,
+  TouchableWithoutFeedback,
+  ScrollView,
+} from 'react-native';
 
 const ManageDropdownsPage = ({ route, navigation }) => {
+  // Extract initial data and an optional callback from route params
+  const {
+    stores: initialStores = [],
+    products: initialProducts = [],
+    categories: initialCategories = [],
+    onDropdownUpdate, // optional callback if using a callback approach
+  } = route.params;
+
   const [newStore, setNewStore] = useState('');
   const [newProduct, setNewProduct] = useState('');
   const [newCategory, setNewCategory] = useState('');
-  const [stores, setStores] = useState(route.params?.stores || []);
-  const [products, setProducts] = useState(route.params?.products || []);
-  const [categories, setCategories] = useState(route.params?.categories || []);
+  const [stores, setStores] = useState(initialStores);
+  const [products, setProducts] = useState(initialProducts);
+  const [categories, setCategories] = useState(initialCategories);
 
   const handleAddStore = () => {
     if (!newStore.trim()) {
@@ -17,8 +34,6 @@ const ManageDropdownsPage = ({ route, navigation }) => {
     const updatedStores = [...stores, newStore];
     setStores(updatedStores);
     setNewStore('');
-    // Pass updated stores back to AdminPage
-    navigation.navigate('Admin', { stores: updatedStores, products });
     Keyboard.dismiss();
   };
 
@@ -30,8 +45,6 @@ const ManageDropdownsPage = ({ route, navigation }) => {
     const updatedProducts = [...products, newProduct];
     setProducts(updatedProducts);
     setNewProduct('');
-    // Pass updated products back to AdminPage
-    navigation.navigate('Admin', { stores, products: updatedProducts });
     Keyboard.dismiss();
   };
 
@@ -43,12 +56,21 @@ const ManageDropdownsPage = ({ route, navigation }) => {
     const updatedCategories = [...categories, newCategory];
     setCategories(updatedCategories);
     setNewCategory('');
-    navigation.navigate('Admin', { stores, products, categories: updatedCategories });
+    Keyboard.dismiss();
+  };
+
+  const handleSave = () => {
+    // Optionally call the parent's callback to update state
+    if (onDropdownUpdate) {
+      onDropdownUpdate(stores, products, categories);
+    }
+    // Redirect back to the Admin page and pass the updated data
+    navigation.navigate('Admin', { stores, products, categories });
   };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.header}>Manage Dropdown Values</Text>
 
         {/* Add Store */}
@@ -86,35 +108,40 @@ const ManageDropdownsPage = ({ route, navigation }) => {
 
         {/* List of Stores */}
         <Text style={styles.sectionHeader}>Stores</Text>
-        <FlatList
-          data={stores}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => <Text style={styles.listItem}>{item}</Text>}
-        />
+        {stores.map((store, index) => (
+          <Text key={index} style={styles.listItem}>
+            {store}
+          </Text>
+        ))}
 
         {/* List of Products */}
         <Text style={styles.sectionHeader}>Products</Text>
-        <FlatList
-          data={products}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => <Text style={styles.listItem}>{item}</Text>}
-        />
+        {products.map((product, index) => (
+          <Text key={index} style={styles.listItem}>
+            {product}
+          </Text>
+        ))}
 
         {/* List of Categories */}
         <Text style={styles.sectionHeader}>Categories</Text>
-        <FlatList
-          data={categories}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => <Text style={styles.listItem}>{item}</Text>}
-        />
-      </View>
+        {categories.map((category, index) => (
+          <Text key={index} style={styles.listItem}>
+            {category}
+          </Text>
+        ))}
+
+        {/* Save Button */}
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+          <Text style={styles.saveButtonText}>Save and Return</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </TouchableWithoutFeedback>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 20,
     backgroundColor: '#f9f9f9',
   },
@@ -154,6 +181,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     paddingVertical: 5,
+  },
+  saveButton: {
+    backgroundColor: '#FFA726', // Contrasting color for Save button
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

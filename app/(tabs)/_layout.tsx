@@ -16,7 +16,10 @@ const Stack = createStackNavigator();
 
 const Tabs = ({ setIsAuthenticated }) => (
   <Tab.Navigator
-    screenOptions={({ route }) => ({
+    screenOptions={({ route }) => ({tabBarStyle: {
+      paddingBottom: 10, 
+      height: 65, 
+    },
       tabBarIcon: ({ color, size }) => {
         let iconName = 'circle';
 

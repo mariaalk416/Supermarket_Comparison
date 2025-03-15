@@ -27,8 +27,11 @@ const SearchPage = ({ navigation }) => {
 
   const handleSearch = (query) => {
     setSearchQuery(query);
+    const lowerCaseQuery = query.toLowerCase();
     const filtered = allProducts.filter((product) =>
-      product.name.toLowerCase().includes(query.toLowerCase())
+      product.name.toLowerCase().includes(lowerCaseQuery) ||
+      (product.supermarket && product.supermarket.toLowerCase().includes(lowerCaseQuery)) ||
+      (product.store && product.store.toLowerCase().includes(lowerCaseQuery))
     );
     setFilteredProducts(filtered);
   };

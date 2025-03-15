@@ -17,8 +17,6 @@ const upload = multer({ storage: storage });
 console.log('Email User:', process.env.EMAIL_USER);
 console.log('Email Pass:', process.env.EMAIL_PASS ? 'Loaded' : 'Not Loaded');
 let subscribedUsers = [
-  { email: 'user1@example.com', subscribed: true },
-  { email: 'user2@example.com', subscribed: true },
   { email: 'rperson416@gmail.com', subscribed: true},
 ];
 
@@ -64,4 +62,4 @@ app.post('/upload-leaflet', upload.single('leaflet'), async (req, res) => {
   }
 });
 
-app.listen(5001, () => console.log('Server running on port 5001'));
+app.listen(5002, () => console.log('Server running on port 5002'));

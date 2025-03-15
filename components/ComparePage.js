@@ -22,13 +22,17 @@ const ComparePage = () => {
     try {
       const storedProducts = await AsyncStorage.getItem('products');
       if (storedProducts) {
-        const parsedProducts = JSON.parse(storedProducts);
-        setProducts(parsedProducts);
-        setFilteredProducts(parsedProducts);
-
-        const uniqueCategories = [
-          ...new Set(parsedProducts.map((product) => product.category)),
-        ];
+        const parsedProducts = JSON.parse(storedProducts) || [];
+        
+        // Ensure valid products only
+        const validProducts = parsedProducts.filter(
+          (product) => product.name && product.store && product.price && product.id
+        );
+  
+        setProducts(validProducts);
+        setFilteredProducts(validProducts);
+  
+        const uniqueCategories = [...new Set(validProducts.map((product) => product.category))];
         setCategories(uniqueCategories);
       }
     } catch (error) {
@@ -36,11 +40,11 @@ const ComparePage = () => {
       console.error('Error loading products:', error);
     }
   }, []);
+  
 
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
-
 
   const filterByCategory = useCallback(
     (category) => {
@@ -63,7 +67,6 @@ const ComparePage = () => {
       ...categories.map((cat) => ({ label: cat, value: cat })),
     ];
   }, [categories]);
-
 
   const addToCart = async (product) => {
     try {
@@ -96,7 +99,7 @@ const ComparePage = () => {
 
       <FlatList
         data={filteredProducts}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={(item, index) => item.id || index.toString()}
         renderItem={({ item }) => (
           <View style={styles.productCard}>
             <Image source={{ uri: item.image }} style={styles.productImage} />
@@ -106,7 +109,6 @@ const ComparePage = () => {
               <Text style={styles.productPrice}>€{item.price}</Text>
               <Text style={styles.productStore}>Store: {item.store}</Text>
             </View>
-   
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => addToCart(item)}
