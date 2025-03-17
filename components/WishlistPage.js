@@ -1,204 +1,78 @@
-import React, { useState, useEffect } from "react";
-import { View, Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  Alert,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
+import PropTypes from 'prop-types';
 
-const WishlistPage = ({ navigation }) => {
-  const [wishlist, setWishlist] = useState([]);
-  const [itemName, setItemName] = useState("");
-  const [itemNote, setItemNote] = useState("");
+const WishlistPage = ({ preferences, setPreferences, navigation }) => {
 
-  // Load wishlist from AsyncStorage on component mount
+  const [localPreferences, setLocalPreferences] = useState(preferences || { supermarket: '', categories: [] });
+
+  // Lists of options (could also be imported from a common file)
+  const supermarkets = ['Sklavenitis', 'Lidl', 'Alpahmega', 'Poplife'];
+  const categories = ['Pasta', 'Bread', 'Dairy', 'Fruits', 'Vegetables'];
+
+  const selectSupermarket = (market) => {
+    setLocalPreferences({ ...localPreferences, supermarket: market });
+  };
+
+  const toggleCategory = (category) => {
+    const updated = localPreferences.categories.includes(category)
+      ? localPreferences.categories.filter(c => c !== category)
+      : [...localPreferences.categories, category];
+    setLocalPreferences({ ...localPreferences, categories: updated });
+  };
+
+  const savePreferences = () => {
+    setPreferences(localPreferences);
+    // Optionally navigate back or show a confirmation
+    navigation.goBack();
+  };
+
+  // Update local state if preferences prop changes
   useEffect(() => {
-    const loadWishlist = async () => {
-      try {
-        const storedWishlist = JSON.parse(await AsyncStorage.getItem("wishlist")) || [];
-        setWishlist(storedWishlist);
-      } catch (error) {
-        console.error("Error loading wishlist:", error);
-      }
-    };
-
-    loadWishlist();
-  }, []);
-
-  // Save wishlist to AsyncStorage whenever it changes
-  const saveWishlist = async (newWishlist) => {
-    try {
-      await AsyncStorage.setItem("wishlist", JSON.stringify(newWishlist));
-      setWishlist(newWishlist);
-    } catch (error) {
-      console.error("Error saving wishlist:", error);
-    }
-  };
-
-  // Add item to wishlist
-  const handleAddItem = () => {
-    if (!itemName.trim()) {
-      Alert.alert("Error", "Item name cannot be empty.");
-      return;
-    }
-
-    const newItem = {
-      id: Date.now().toString(), // Unique ID
-      name: itemName.trim(),
-      note: itemNote.trim(),
-    };
-
-    const updatedWishlist = [...wishlist, newItem];
-    saveWishlist(updatedWishlist);
-
-    setItemName("");
-    setItemNote("");
-  };
-
-  // Remove item from wishlist
-  const handleRemoveItem = (id) => {
-    const updatedWishlist = wishlist.filter((item) => item.id !== id);
-    saveWishlist(updatedWishlist);
-  };
-
-  // Render each wishlist item
-  const renderWishlistItem = ({ item }) => (
-    <View style={styles.wishlistItem}>
-      <View>
-        <Text style={styles.itemName}>{item.name}</Text>
-        {item.note ? <Text style={styles.itemNote}>{item.note}</Text> : null}
-      </View>
-      <TouchableOpacity
-        style={styles.removeButton}
-        onPress={() => handleRemoveItem(item.id)}
-      >
-        <Text style={styles.removeButtonText}>Remove</Text>
-      </TouchableOpacity>
-    </View>
-  );
+    setLocalPreferences(preferences);
+  }, [preferences]);
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={["#8ae1e6", "#34c2b3"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
-      >
-        <Text style={styles.header}>My Wishlist</Text>
-      </LinearGradient>
-
-      {/* Input for adding items */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Item Name"
-          value={itemName}
-          onChangeText={setItemName}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Optional Note"
-          value={itemNote}
-          onChangeText={setItemNote}
-        />
-        <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
-          <Text style={styles.addButtonText}>Add to Wishlist</Text>
+    <View style={{ flex: 1, padding: 20 }}>
+      <Text style={{ fontSize: 22, marginBottom: 10 }}>Update Your Preferences</Text>
+      <Text style={{ fontSize: 18, marginVertical: 5 }}>Select Preferred Supermarket:</Text>
+      {supermarkets.map((market) => (
+        <TouchableOpacity key={market} onPress={() => selectSupermarket(market)} style={{ marginVertical: 5 }}>
+          <Text style={{
+            padding: 10,
+            backgroundColor: localPreferences.supermarket === market ? 'blue' : 'gray',
+            color: 'white'
+          }}>
+            {market}
+          </Text>
         </TouchableOpacity>
-      </View>
-
-      {/* Wishlist items */}
-      <FlatList
-        data={wishlist}
-        keyExtractor={(item) => item.id}
-        renderItem={renderWishlistItem}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>Your wishlist is empty.</Text>
-        }
-      />
+      ))}
+      <Text style={{ fontSize: 18, marginVertical: 5 }}>Select Categories:</Text>
+      {categories.map((cat) => (
+        <TouchableOpacity key={cat} onPress={() => toggleCategory(cat)} style={{ marginVertical: 5 }}>
+          <Text style={{
+            padding: 10,
+            backgroundColor: localPreferences.categories.includes(cat) ? 'blue' : 'gray',
+            color: 'white'
+          }}>
+            {cat}
+          </Text>
+        </TouchableOpacity>
+      ))}
+      <TouchableOpacity onPress={savePreferences} style={{ marginTop: 20, padding: 10, backgroundColor: 'green' }}>
+        <Text style={{ color: 'white', textAlign: 'center' }}>Save Preferences</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#e0f7f9",
-    padding: 20,
-  },
-  headerGradient: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-    textAlign: "center",
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 25,
-    padding: 15,
-    fontSize: 16,
-    marginBottom: 15,
-    elevation: 3,
-  },
-  addButton: {
-    backgroundColor: "#34c2b3",
-    padding: 15,
-    borderRadius: 25,
-    alignItems: "center",
-    elevation: 5,
-  },
-  addButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  wishlistItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 15,
-    backgroundColor: "#fff",
-    borderRadius: 15,
-    marginBottom: 10,
-    elevation: 3,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  itemNote: {
-    fontSize: 14,
-    color: "#666",
-  },
-  removeButton: {
-    backgroundColor: "#ff6b6b",
-    padding: 10,
-    borderRadius: 25,
-    elevation: 3,
-  },
-  removeButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-  emptyText: {
-    textAlign: "center",
-    fontSize: 16,
-    color: "#666",
-    marginTop: 20,
-  },
-});
+WishlistPage.propTypes = {
+  preferences: PropTypes.shape({
+    supermarket: PropTypes.string,
+    categories: PropTypes.arrayOf(PropTypes.string)
+  }),
+  setPreferences: PropTypes.func.isRequired,
+  navigation: PropTypes.object.isRequired
+};
 
 export default WishlistPage;

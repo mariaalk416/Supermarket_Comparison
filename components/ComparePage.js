@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import PropTypes from 'prop-types';
 
-const ComparePage = () => {
+const ComparePage = ({ preferences }) => {
   const [products, setProducts] = useState([]); 
   const [filteredProducts, setFilteredProducts] = useState([]); 
   const [categories, setCategories] = useState([]);
@@ -84,6 +85,8 @@ const ComparePage = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Compare Prices</Text>
+      <Text>Preferred Supermarket: {preferences.supermarket}</Text>
+      <Text>Categories: {preferences.categories.join(', ')}</Text>
 
       <DropDownPicker
         open={categoryDropdownOpen}
@@ -123,6 +126,13 @@ const ComparePage = () => {
       />
     </View>
   );
+};
+
+ComparePage.propTypes = {
+  preferences: PropTypes.shape({
+    supermarket: PropTypes.string,
+    categories: PropTypes.arrayOf(PropTypes.string)
+  }).isRequired
 };
 
 const styles = StyleSheet.create({

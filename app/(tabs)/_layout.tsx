@@ -10,6 +10,7 @@ import DropDown from '@/components/DropDown';
 import Map from '@/components/Map';
 import { Icon } from 'react-native-elements';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+ import OnboardingWizard from '@/components/Wizard';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -89,22 +90,35 @@ const AppNavigator = () => {
   }, []);
 
   return (
-    <Stack.Navigator >
+    <Stack.Navigator>
       {isAuthenticated ? (
-        <Stack.Screen
-          name="Main"
-          options={{ headerShown: false }}
-          children={() => <Tabs setIsAuthenticated={setIsAuthenticated} />}
-        />
+        <>
+          <Stack.Screen
+            name="Main"
+            options={{ headerShown: false }}
+            children={() => <Tabs setIsAuthenticated={setIsAuthenticated} />}
+          />
+        </>
       ) : (
-        <Stack.Screen
-          name="Login"
-          options={{ headerShown: false }}
-          children={(props) => (
-            <LoginPage {...props} setIsAuthenticated={setIsAuthenticated} />
-          )}
-        />
+        <>
+          <Stack.Screen
+            name="Login"
+            options={{ headerShown: false }}
+            children={(props) => (
+              <LoginPage {...props} setIsAuthenticated={setIsAuthenticated} />
+            )}
+          />
+        </>
       )}
+      <Stack.Screen
+        name="Wizard" 
+        component={OnboardingWizard}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Home" 
+        component={HomePage}
+      />
     </Stack.Navigator>
   );
 };

@@ -7,8 +7,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import PropTypes from 'prop-types';
 import { useRouter } from 'expo-router';
 import EmailSubscriptionPopup from '@/components/EmailSubscriptionPopup';
+import OnboardingWizard from '@/components/Wizard';
+import AppNavigator from '@/app/(tabs)/_layout';
 
-const LoginPage = ({ navigation, setIsAuthenticated }) => {
+const LoginPage = ({  navigation, setIsAuthenticated }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
@@ -51,7 +53,7 @@ const LoginPage = ({ navigation, setIsAuthenticated }) => {
         await AsyncStorage.setItem('loginname', email);
         setIsAuthenticated();
         checkSubscriptionStatus(); 
-        router.push('/home');
+        router.push('/Wizard');
       } else {
         Alert.alert('Error', 'Invalid email or password.');
       }

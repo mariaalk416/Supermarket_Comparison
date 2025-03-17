@@ -11,7 +11,8 @@ import RealTimePriceIcon from '../assets/images/pic1.jpg';
 import PersonalizedIcon from '../assets/images/pic2.png';
 import CompareIcon from '../assets/images/pic3.jpg';
 
-const HomePage = ({ navigation }) => {
+const HomePage = ({ navigation, route}) => {
+  //const { preferences } = route.params;
   return (
     <SafeAreaContainer edges={['left', 'right']}>
       <ScrollContainer contentContainerStyle={{ flexGrow: 1, paddingBottom: 115 }}>

@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Index from './index';
 import AppStack from './AppStack';
 
+
 const HeaderWithLogo = () => {
     return (
       <View style={styles.headerContainer}>
@@ -20,19 +21,19 @@ const HeaderWithLogo = () => {
 const RootLayout = () => {
   return (
     <NavigationIndependentTree>
-    <NavigationContainer>
-      <SafeAreaView style={{ flex: 1 }}>
-        <ContentContainer>
-          <Stack screenOptions={{
-            headerTitle: () => <HeaderWithLogo />, 
-            headerStyle: {
-              backgroundColor: '#34c2b3',
-            },
-            headerTitleAlign: 'center',
-          }}/>
-        </ContentContainer>
-      </SafeAreaView>
-    </NavigationContainer>
+      <NavigationContainer>
+        <SafeAreaView style={{ flex: 1 }}>
+          <ContentContainer>
+            <Stack screenOptions={{
+              headerTitle: () => <HeaderWithLogo />, 
+              headerStyle: {
+                backgroundColor: '#34c2b3',
+              },
+              headerTitleAlign: 'center',
+            }}/>
+          </ContentContainer>
+        </SafeAreaView>
+      </NavigationContainer>
     </NavigationIndependentTree>
   );
 };
