@@ -9,15 +9,63 @@ import {
   TouchableWithoutFeedback,
   ScrollView,
 } from 'react-native';
+import PropTypes from 'prop-types';
 
-const ManageDropdownsPage = ({ route, navigation }) => {
-  // Extract initial data and an optional callback from route params
-  const {
-    stores: initialStores = [],
-    products: initialProducts = [],
-    categories: initialCategories = [],
-    onDropdownUpdate, // optional callback if using a callback approach
-  } = route.params;
+/**
+ * Helper function to return the default array if the incoming array is missing or empty.
+ * @param {any[]} incoming 
+ * @param {any[]} def 
+ * @returns {any[]}
+ */
+const getInitialArray = (incoming, def) => {
+  return incoming && incoming.length > 0 ? incoming : def;
+};
+
+const defaultStores = ['Sklavenitis', 'Lidl', 'Alpahmega', 'Poplife'];
+const defaultProducts = [
+  'Apple Juice',
+  'Orange Juice',
+  'Milk',
+  'Bread',
+  'Cheese',
+  'Eggs',
+  'Yogurt',
+  'Pasta',
+  'Tomato Sauce',
+  'Chicken',
+];
+const defaultCategories = ['Pasta', 'Bread', 'Dairy', 'Fruits', 'Vegetables'];
+
+/**
+ * ManageDropdownsPage lets the user add new values for stores, products, and categories.
+ * Default values are provided if none are passed in or if the passed arrays are empty.
+ *
+ * @param {object} props
+ * @param {string[]} props.stores - The initial list of stores.
+ * @param {string[]} props.products - The initial list of product names.
+ * @param {string[]} props.categories - The initial list of categories.
+ * @param {(updatedStores: string[], updatedProducts: string[], updatedCategories: string[]) => void} props.onDropdownUpdate - Callback to update the central state.
+ * @param {object} props.route - The navigation route prop.
+ * @param {object} props.navigation - The navigation prop.
+ */
+const ManageDropdownsPage = ({
+  route,
+  navigation,
+  stores: propStores = [],
+  products: propProducts = [],
+  categories: propCategories = [],
+  onDropdownUpdate,
+}) => {
+  // Note: In your navigator you pass the key "productNames" for products.
+  const initialStores = route.params?.stores && route.params.stores.length > 0
+    ? route.params.stores
+    : getInitialArray(propStores, defaultStores);
+  const initialProducts = route.params?.productNames && route.params.productNames.length > 0
+    ? route.params.productNames
+    : getInitialArray(propProducts, defaultProducts);
+  const initialCategories = route.params?.categories && route.params.categories.length > 0
+    ? route.params.categories
+    : getInitialArray(propCategories, defaultCategories);
 
   const [newStore, setNewStore] = useState('');
   const [newProduct, setNewProduct] = useState('');
@@ -60,12 +108,11 @@ const ManageDropdownsPage = ({ route, navigation }) => {
   };
 
   const handleSave = () => {
-    // Optionally call the parent's callback to update state
     if (onDropdownUpdate) {
       onDropdownUpdate(stores, products, categories);
     }
-    // Redirect back to the Admin page and pass the updated data
-    navigation.navigate('Admin', { stores, products, categories });
+    // Navigate back to the Admin page with updated dropdown data.
+    navigation.navigate('Admin', { stores, productNames: products, categories });
   };
 
   return (
@@ -124,9 +171,9 @@ const ManageDropdownsPage = ({ route, navigation }) => {
 
         {/* List of Categories */}
         <Text style={styles.sectionHeader}>Categories</Text>
-        {categories.map((category, index) => (
+        {categories.map((cat, index) => (
           <Text key={index} style={styles.listItem}>
-            {category}
+            {cat}
           </Text>
         ))}
 
@@ -137,6 +184,15 @@ const ManageDropdownsPage = ({ route, navigation }) => {
       </ScrollView>
     </TouchableWithoutFeedback>
   );
+};
+
+ManageDropdownsPage.propTypes = {
+  stores: PropTypes.arrayOf(PropTypes.string),
+  products: PropTypes.arrayOf(PropTypes.string),
+  categories: PropTypes.arrayOf(PropTypes.string),
+  onDropdownUpdate: PropTypes.func.isRequired,
+  route: PropTypes.object.isRequired,
+  navigation: PropTypes.object.isRequired,
 };
 
 const styles = StyleSheet.create({
@@ -183,7 +239,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   saveButton: {
-    backgroundColor: '#FFA726', // Contrasting color for Save button
+    backgroundColor: '#FFA726',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',

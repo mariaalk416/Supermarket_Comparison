@@ -1,39 +1,24 @@
 import React, { useState } from 'react';
+import { SafeAreaView, ScrollView, TouchableOpacity, Text, View } from 'react-native';
 import styled from 'styled-components/native';
-import { ScrollView, TouchableOpacity, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import PropTypes from 'prop-types';
 
-
-const OnboardingWizard = ({ wizardCompleted }) => {
+const OnboardingWizard = ({ wizardCompleted, stores, categories }) => {
   const [step, setStep] = useState(1);
   const [preferences, setPreferences] = useState({
     supermarket: '',
-    categories: []
+    categories: [],
   });
 
-  const router = useRouter();
+  // Use the passed-in stores and categories for dropdown options:
+  const supermarkets = stores;
+  const availableCategories = categories;
 
-  const supermarkets = [
-    'Sklavenitis',
-    'Lidl',
-    'Alpahmega',
-    'Poplife'
-  ];
-  const categories = [
-    'Pasta',
-    'Bread',
-    'Dairy',
-    'Fruits',
-    'Vegetables'
-  ];
-
-  const selectSupermarket = (market: string) => {
+  const selectSupermarket = (market) => {
     setPreferences({ ...preferences, supermarket: market });
   };
 
-  const toggleCategory = (category: string) => {
+  const toggleCategory = (category) => {
     const updated = preferences.categories.includes(category)
       ? preferences.categories.filter(c => c !== category)
       : [...preferences.categories, category];
@@ -41,7 +26,7 @@ const OnboardingWizard = ({ wizardCompleted }) => {
   };
 
   const nextStep = () => setStep(step + 1);
-  
+
   const finishWizard = () => {
     wizardCompleted(preferences);
   };
@@ -49,7 +34,7 @@ const OnboardingWizard = ({ wizardCompleted }) => {
   return (
     <SafeAreaContainer edges={['left', 'right']}>
       <ScrollContainer contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}>
-        {step === 1 && (
+        {step === 1 ? (
           <WizardContainer>
             <Title>Select Your Preferred Supermarket</Title>
             {supermarkets.map((market) => (
@@ -67,11 +52,10 @@ const OnboardingWizard = ({ wizardCompleted }) => {
               <ButtonText>Next</ButtonText>
             </WizardButton>
           </WizardContainer>
-        )}
-        {step === 2 && (
+        ) : (
           <WizardContainer>
             <Title>Select Categories You’re Interested In</Title>
-            {categories.map((cat) => (
+            {availableCategories.map((cat) => (
               <OptionButton
                 key={cat}
                 onPress={() => toggleCategory(cat)}
@@ -93,13 +77,14 @@ const OnboardingWizard = ({ wizardCompleted }) => {
 };
 
 OnboardingWizard.propTypes = {
-    wizardCompleted : PropTypes.func.isRequired 
+  wizardCompleted: PropTypes.func.isRequired,
+  stores: PropTypes.arrayOf(PropTypes.string).isRequired,
+  categories: PropTypes.arrayOf(PropTypes.string).isRequired,
 };
 
-  
 export default OnboardingWizard;
 
-
+// Styled components (unchanged)
 const SafeAreaContainer = styled(SafeAreaView)`
   flex: 1;
   background-color: #e0f7f9;

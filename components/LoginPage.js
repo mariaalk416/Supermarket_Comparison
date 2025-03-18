@@ -62,6 +62,42 @@ const LoginPage = ({  navigation, setIsAuthenticated }) => {
     }
   };
 
+  async function registerForPushNotificationsAsync() {
+    let token;
+    if (Constants.isDevice) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        alert('Failed to get push token for push notification!');
+        return;
+      }
+      token = (await Notifications.getExpoPushTokenAsync()).data;
+      console.log(token);
+    } else {
+      alert('Must use physical device for Push Notifications');
+    }
+    return token;
+  }
+
+
+  async function registerDeviceToken(token) {
+    try {
+      const response = await fetch('http://192.168.1.104:5002/register-device', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const data = await response.json();
+      console.log(data.message);
+    } catch (error) {
+      console.error('Error registering device token:', error);
+    }
+  }
+
   const handleCreateAccount = async () => {
     if (!isValidEmail(email)) {
       Alert.alert('Error', 'Please enter a valid email address.');
@@ -101,6 +137,8 @@ const LoginPage = ({  navigation, setIsAuthenticated }) => {
       handleCreateAccount();
     } else {
       handleLogin();
+      registerDeviceToken(token)
+      registerForPushNotificationsAsync();
     }
   };
 

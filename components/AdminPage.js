@@ -5,11 +5,11 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   Keyboard,
+  TouchableWithoutFeedback,
   Image,
   SafeAreaView,
-  TouchableWithoutFeedback,
+  Alert,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -17,13 +17,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const AdminPage = ({ route, navigation }) => {
-  const [productList, setProductList] = useState(route.params?.products || []);
-  const [stores, setStores] = useState(route.params?.stores || []);
-  const [products, setProducts] = useState(route.params?.productNames || []);
-  const [categories, setCategories] = useState(route.params?.categories || []);
+//images
+import milk from '../assets/images/milk.jpg'
+import orangeJuice from '../assets/images/orange-juice.jpg'
+import appleJuice from '../assets/images/apple-juice.jpg'
+import Bread from '../assets/images/bread.jpg'
 
-  
+const AdminPage = ({ route, navigation, stores: externalStores, products: externalProducts, categories: externalCategories }) => {
+  // Load initial values from route.params, external props, or default demo arrays
+  const initialStores = route.params?.stores || externalStores || ['Sklavenitis', 'Lidl', 'Alpahmega', 'Poplife'];
+  const initialProducts = route.params?.productNames || externalProducts || [];
+  const initialCategories = route.params?.categories || externalCategories || ['Pasta', 'Bread', 'Dairy', 'Fruits', 'Vegetables'];
+
+  const [productList, setProductList] = useState([]);
+  const [stores, setStores] = useState(initialStores);
+  const [products, setProducts] = useState(initialProducts);
+  const [categories, setCategories] = useState(initialCategories);
+
   const [openProduct, setOpenProduct] = useState(false);
   const [productName, setProductName] = useState(null);
   const [openStore, setOpenStore] = useState(false);
@@ -34,8 +44,68 @@ const AdminPage = ({ route, navigation }) => {
   const [storePrice, setStorePrice] = useState('');
   const [productImage, setProductImage] = useState(null);
   const [leafletImage, setLeafletImage] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
-  
+  // For editing a product's price
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [editingPrice, setEditingPrice] = useState('');
+
+  // Helper: Generate unique id using timestamp and name
+  const generateUniqueId = (name, store) => `${name}-${store}-${Date.now()}`;
+
+  // Load products from AsyncStorage on mount.
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const storedProducts = await AsyncStorage.getItem('products');
+        let loadedProducts = storedProducts ? JSON.parse(storedProducts) : [];
+        // If no products exist, initialize with some demo products.
+        if (loadedProducts.length === 0) {
+          loadedProducts = [
+            {
+              id: generateUniqueId('Apple Juice', 'Lidl'),
+              name: 'Apple Juice',
+              store: 'Lidl',
+              price: '2.99',
+              category: 'Juices',
+              image: appleJuice,
+            },
+            {
+              id: generateUniqueId('Orange Juice', 'Lidl'),
+              name: 'Orange Juice',
+              store: 'Lidl',
+              price: '3.49',
+              category: 'Juices',
+              image: orangeJuice,
+            },
+            {
+              id: generateUniqueId('Milk', 'Sklavenitis'),
+              name: 'Milk',
+              store: 'Sklavenitis',
+              price: '1.99',
+              category: 'Dairy',
+              image: milk,
+            },
+            {
+              id: generateUniqueId('Bread', 'Alpahmega'),
+              name: 'Bread',
+              store: 'Alpahmega',
+              price: '1.49',
+              category: 'Bread',
+              productImage: Bread,
+            },
+          ];
+          await AsyncStorage.setItem('products', JSON.stringify(loadedProducts));
+        }
+        setProductList(loadedProducts);
+      } catch (error) {
+        console.error('Error loading products:', error);
+      }
+    };
+
+    loadProducts();
+  }, []);
+
   const saveProducts = async (productsArray) => {
     try {
       await AsyncStorage.setItem('products', JSON.stringify(productsArray));
@@ -44,34 +114,53 @@ const AdminPage = ({ route, navigation }) => {
     }
   };
 
+  const handleReducePrice = (productId) => {
+    const updatedProducts = productList.map((item) => {
+      if (item.id === productId) {
+        if (parseFloat(editingPrice) < parseFloat(item.price)) {
+          // Trigger push notification 
+          sendPriceReductionNotification(item, editingPrice);
+        }
+        return { ...item, price: editingPrice };
+      }
+      return item;
+    });
+    setProductList(updatedProducts);
+    saveProducts(updatedProducts);
+    setEditingProductId(null);
+    setEditingPrice('');
+  };
+
   const handleAddProduct = () => {
     if (!productName || !storeName || !storePrice.trim() || !category || !productImage) {
-      alert('Please select product, store, price, category, and image.');
+      Alert.alert('Validation Error', 'Please select product, store, price, category, and image.');
       return;
     }
-  
+
     const newProduct = {
-      id: `${productName}-${storeName}-${Date.now()}`, // Ensure unique ID
+      id: generateUniqueId(productName, storeName),
       name: productName,
       store: storeName,
       price: storePrice,
       category,
-      image: productImage,
+      productImage: productImage,
     };
-  
-    // Load existing products from AsyncStorage to preserve old ones
-    AsyncStorage.getItem('products')
-      .then((storedProducts) => {
-        const existingProducts = storedProducts ? JSON.parse(storedProducts) : [];
-  
-        // Ensure only valid products are stored
-        const updatedProducts = [...existingProducts, newProduct];
-  
-        setProductList(updatedProducts);
-        return AsyncStorage.setItem('products', JSON.stringify(updatedProducts));
-      })
-      .catch((error) => console.error('Error updating products:', error));
-  
+
+    // Check if product with the same id already exists to avoid duplicate keys
+    if (productList.some((item) => item.id === newProduct.id)) {
+      Alert.alert('Error', 'This product already exists.');
+      return;
+    }
+
+    const updatedProducts = [...productList, newProduct];
+    setProductList(updatedProducts);
+    saveProducts(updatedProducts);
+
+    // Optionally update the dropdown values if new product is added
+    if (!products.includes(productName)) {
+      setProducts([...products, productName]);
+    }
+
     // Reset form fields
     setProductName(null);
     setStoreName(null);
@@ -80,7 +169,59 @@ const AdminPage = ({ route, navigation }) => {
     setProductImage(null);
     Keyboard.dismiss();
   };
+
+  // Update productImage state after picking an image
+  const pickImage = async () => {
+    try {
+      setUploading(true);
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Denied',
+          'Sorry, gallery permission is required to upload images.'
+        );
+      } else {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 1,
+        });
+
+        if (!result.canceled) {
+          const uri = result.assets[0].uri;
+          setProductImage(uri);
+          Alert.alert('Success', 'Image uploaded successfully!');
+        }
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const sendPriceReductionNotification = (product, newPrice) => {
+    const message = {
+      notification: {
+        title: 'Price Reduced!',
+        body: `${product.name} is now ${newPrice}€ at ${product.store}.`,
+      },
+      // Send to multiple tokens
+      tokens: subscribedDeviceTokens,
+    };
   
+    admin.messaging().sendMulticast(message)
+      .then((response) => {
+        console.log('Successfully sent message:', response);
+      })
+      .catch((error) => {
+        console.error('Error sending message:', error);
+      });
+  };
+
   const uploadLeaflet = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -88,25 +229,25 @@ const AdminPage = ({ route, navigation }) => {
         Alert.alert('Permission Denied', 'Gallery permission is required to upload leaflets.');
         return;
       }
-  
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 1,
       });
-  
+
       if (!result.canceled) {
         const uri = result.assets[0].uri;
         setLeafletImage(uri);
-  
+
         const formData = new FormData();
         formData.append('leaflet', {
-          uri: uri,
-          name: 'leaflet.jpg', 
-          type: 'image/jpeg', 
+          uri,
+          name: 'leaflet.jpg',
+          type: 'image/jpeg',
         });
-  
+
         const response = await fetch('http://192.168.1.104:5002/upload-leaflet', {
           method: 'POST',
           body: formData,
@@ -114,7 +255,7 @@ const AdminPage = ({ route, navigation }) => {
             'Content-Type': 'multipart/form-data',
           },
         });
-  
+
         const data = await response.json();
         if (response.ok) {
           Alert.alert('Success', 'Leaflet uploaded & emails sent!');
@@ -130,55 +271,33 @@ const AdminPage = ({ route, navigation }) => {
       Alert.alert('Error', 'Something went wrong. Please try again.');
     }
   };
-  
-  const pickImage = async () => {
-    try{
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Sorry, gallery permission is required to upload images."
-        );
-      } else {
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          aspect: [4, 3],
-          quality: 1,
-        });
-        
-
-        if (!result.canceled) {
-          const uri = result.assets[0].uri; // Extract the image URI
-
-          // Save the image URI to AsyncStorage
-          const storedLeaflets =
-            JSON.parse(await AsyncStorage.getItem("leaflets")) || [];
-          const newLeaflets = [...storedLeaflets, uri];
-
-          await AsyncStorage.setItem("leaflets", JSON.stringify(newLeaflets));
-
-          Alert.alert("Success", "Image uploaded successfully!");
-        }
-      }
-    } catch (error) {
-      console.error("Error picking image:", error);
-      Alert.alert("Error", "Something went wrong. Please try again.");
-    } finally {
-      setUploading(false);
-    }
+  // Allow price edit functionality
+  const handleEditPrice = (productId, currentPrice) => {
+    setEditingProductId(productId);
+    setEditingPrice(currentPrice);
   };
 
-  
+  const handleSavePrice = (productId) => {
+    const updatedProducts = productList.map((item) => {
+      if (item.id === productId) {
+        return { ...item, price: editingPrice };
+      }
+      return item;
+    });
+    setProductList(updatedProducts);
+    saveProducts(updatedProducts);
+    setEditingProductId(null);
+    setEditingPrice('');
+  };
 
+  // Load any updated dropdown values from route.params if they change
   useEffect(() => {
     if (route.params?.stores) setStores(route.params.stores);
-    if (route.params?.products) setProducts(route.params.products);
+    if (route.params?.products) setProducts(route.params.productNames);
     if (route.params?.categories) setCategories(route.params.categories);
   }, [route.params]);
 
-  
   const filteredProducts = productList.filter(
     (item) => item.name && item.store && item.price
   );
@@ -188,7 +307,7 @@ const AdminPage = ({ route, navigation }) => {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAwareScrollView
           contentContainerStyle={styles.container}
-          enableOnAndroid={true}
+          enableOnAndroid
           keyboardShouldPersistTaps="handled"
           extraScrollHeight={20}
         >
@@ -232,7 +351,6 @@ const AdminPage = ({ route, navigation }) => {
             listMode="SCROLLVIEW"
           />
 
-
           <DropDownPicker
             open={openStore}
             value={storeName}
@@ -273,20 +391,40 @@ const AdminPage = ({ route, navigation }) => {
           {productImage && <Image source={{ uri: productImage }} style={styles.previewImage} />}
 
           <TouchableOpacity style={styles.addButton} onPress={handleAddProduct}>
-            <Text style={styles.buttonText}>Add</Text>
+            <Text style={styles.buttonText}>Add Product</Text>
           </TouchableOpacity>
 
           {filteredProducts.map((item) => (
-          <View key={item.id} style={styles.productItem}>
-            <Image source={{ uri: item.image }} style={styles.productImage} />
-            <View>
-              <Text style={styles.productText}>{item.name}</Text>
-              <Text style={styles.productText}>{item.store}</Text>
-              <Text style={styles.productText}>{item.category}</Text>
-              <Text style={styles.productText}>{item.price}€</Text>
+            <View key={item.id} style={styles.productItem}>
+              <Image source={{ uri: item.image }} style={styles.productImage} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.productText}>{item.name}</Text>
+                <Text style={styles.productText}>{item.store}</Text>
+                <Text style={styles.productText}>{item.category}</Text>
+                {editingProductId === item.id ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TextInput
+                      style={[styles.input, { flex: 1 }]}
+                      value={editingPrice}
+                      onChangeText={setEditingPrice}
+                      keyboardType="numeric"
+                    />
+                    <TouchableOpacity style={styles.editButton} onPress={() => handleSavePrice(item.id)}>
+                      <Text style={styles.buttonText}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={styles.productText}>Price: {item.price}€</Text>
+                    <TouchableOpacity style={styles.editButton} onPress={() => handleEditPrice(item.id, item.price)}>
+                      <Text style={styles.buttonText}>Edit Price</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
             </View>
-          </View>
-        ))}
+          ))}
+
           <TouchableOpacity style={styles.addButton} onPress={uploadLeaflet}>
             <Text style={styles.buttonText}>Upload Leaflet</Text>
           </TouchableOpacity>
@@ -368,6 +506,7 @@ const styles = StyleSheet.create({
   productText: {
     fontSize: 16,
     color: '#333',
+    marginBottom: 5,
   },
   previewImage: {
     width: 100,
@@ -381,6 +520,13 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 10,
     marginRight: 10,
+  },
+  editButton: {
+    backgroundColor: '#34c2b3',
+    padding: 5,
+    borderRadius: 15,
+    marginLeft: 10,
+    elevation: 3,
   },
 });
 

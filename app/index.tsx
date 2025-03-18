@@ -36,7 +36,20 @@ const Index = () => {
   const [authState, setAuthState] = useState<AuthState>(AuthState.UNKNOWN);
   const [loading, setLoading] = useState(true);
   const [shouldNavigateToWizard, setShouldNavigateToWizard] = useState(false);
-  const [products, setProducts] = useState([]);
+  const [stores, setStores] = useState(['Sklavenitis', 'Lidl', 'Alpahmega', 'Poplife']);
+  const [productNames, setProductNames] = useState([
+    'Apple Juice',
+    'Orange Juice',
+    'Milk',
+    'Bread',
+    'Cheese',
+    'Eggs',
+    'Yogurt',
+    'Pasta',
+    'Tomato Sauce',
+    'Chicken',
+  ]);
+  const [categories, setCategories] = useState(['Pasta', 'Bread', 'Dairy', 'Fruits', 'Vegetables']);
   const [wizardPreferences, setWizardPreferences] = useState({
     supermarket: '',
     categories: []
@@ -107,6 +120,8 @@ const Index = () => {
                   setWizardPreferences(preferences);
                   setShouldNavigateToWizard(false);
                 }}
+                stores={stores}
+                categories={categories}
               />
             )}
           />
@@ -147,14 +162,32 @@ const Index = () => {
               <Stack.Screen name="Map" component={Map} options={{ title: 'Map' }} />
               <Stack.Screen
                 name="Admin"
-                component={AdminPage}
-                initialParams={{ products, setProducts }}
                 options={{ title: 'Admin Page' }}
+                children={(props) => (
+                  <AdminPage
+                    {...props}
+                    stores={stores}
+                    products={productNames}
+                    categories={categories}
+                  />
+                )}
               />
               <Stack.Screen
                 name="ManageDropdownsPage"
-                component={ManageDropdownsPage}
                 options={{ title: 'Manage Dropdowns' }}
+                children={(props) => (
+                  <ManageDropdownsPage
+                    {...props}
+                    stores={stores}
+                    products={productNames}
+                    categories={categories}
+                    onDropdownUpdate={(updatedStores, updatedProducts, updatedCategories) => {
+                      setStores(updatedStores);
+                      setProductNames(updatedProducts);
+                      setCategories(updatedCategories);
+                    }}
+                  />
+                )}
               />
               <Stack.Screen
                 name="Search"

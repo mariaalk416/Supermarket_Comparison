@@ -14,11 +14,35 @@ app.use(express.json());
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+const admin = require('firebase-admin');
+const serviceAccount = require(path);
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
 console.log('Email User:', process.env.EMAIL_USER);
 console.log('Email Pass:', process.env.EMAIL_PASS ? 'Loaded' : 'Not Loaded');
 let subscribedUsers = [
   { email: 'rperson416@gmail.com', subscribed: true},
 ];
+
+let subscribedDeviceTokens = [];
+
+app.post('/register-device', (req, res) => {
+  const { token } = req.body;
+  if (!token) {
+    return res.status(400).json({ message: 'Token is required' });
+  }
+
+  // Avoid duplicate tokens
+  if (!subscribedDeviceTokens.includes(token)) {
+    subscribedDeviceTokens.push(token);
+    console.log('Registered token:', token);
+  }
+
+  res.json({ message: 'Device token registered successfully.' });
+});
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
