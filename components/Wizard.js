@@ -6,16 +6,19 @@ import PropTypes from 'prop-types';
 const OnboardingWizard = ({ wizardCompleted, stores, categories }) => {
   const [step, setStep] = useState(1);
   const [preferences, setPreferences] = useState({
-    supermarket: '',
+    supermarket: [],
     categories: [],
   });
 
-  // Use the passed-in stores and categories for dropdown options:
   const supermarkets = stores;
   const availableCategories = categories;
 
   const selectSupermarket = (market) => {
-    setPreferences({ ...preferences, supermarket: market });
+    const updatedSupermarkets = preferences.supermarket.includes(market)
+      ? preferences.supermarket.filter(s => s !== market)
+      : [...preferences.supermarket, market];
+  
+    setPreferences({ ...preferences, supermarket: updatedSupermarkets });
   };
 
   const toggleCategory = (category) => {
@@ -41,9 +44,9 @@ const OnboardingWizard = ({ wizardCompleted, stores, categories }) => {
               <OptionButton
                 key={market}
                 onPress={() => selectSupermarket(market)}
-                selected={preferences.supermarket === market}
+                selected={preferences.supermarket.includes(market)}
               >
-                <OptionText selected={preferences.supermarket === market}>
+                <OptionText selected={preferences.supermarket.includes(market)}>
                   {market}
                 </OptionText>
               </OptionButton>
@@ -84,7 +87,6 @@ OnboardingWizard.propTypes = {
 
 export default OnboardingWizard;
 
-// Styled components (unchanged)
 const SafeAreaContainer = styled(SafeAreaView)`
   flex: 1;
   background-color: #e0f7f9;

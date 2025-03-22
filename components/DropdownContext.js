@@ -3,7 +3,7 @@ import React, { createContext, useState } from 'react';
 export const DropdownContext = createContext();
 
 export const DropdownProvider = ({ children }) => {
-  const [stores, setStores] = useState(['Sklavenitis', 'Lidl', 'Alpahmega', 'Poplife']);
+  const [stores, setStores] = useState(['Sklavenitis', 'Lidl', 'Alphamega', 'Poplife']);
   const [productNames, setProductNames] = useState([
     'Apple Juice',
     'Orange Juice',

@@ -18,12 +18,10 @@ import Cart from '@/components/Cart';
 import Map from '@/components/Map';
 import OnboardingWizard from '@/components/Wizard';
 
-// Ignore specific logs
 LogBox.ignoreLogs([
   'Error: Attempted to navigate before mounting the Root Layout component.',
 ]);
 
-// Auth state enum
 enum AuthState {
   UNKNOWN,
   NOT_AUTHENTICATED,
@@ -36,7 +34,7 @@ const Index = () => {
   const [authState, setAuthState] = useState<AuthState>(AuthState.UNKNOWN);
   const [loading, setLoading] = useState(true);
   const [shouldNavigateToWizard, setShouldNavigateToWizard] = useState(false);
-  const [stores, setStores] = useState(['Sklavenitis', 'Lidl', 'Alpahmega', 'Poplife']);
+  const [stores, setStores] = useState(['Sklavenitis', 'Lidl', 'Alphamega', 'Poplife']);
   const [productNames, setProductNames] = useState([
     'Apple Juice',
     'Orange Juice',
@@ -49,13 +47,13 @@ const Index = () => {
     'Tomato Sauce',
     'Chicken',
   ]);
-  const [categories, setCategories] = useState(['Pasta', 'Bread', 'Dairy', 'Fruits', 'Vegetables']);
+  const [categories, setCategories] = useState(['Pasta', 'Juices', 'Bread', 'Dairy', 'Fruits', 'Vegetables']);
   const [wizardPreferences, setWizardPreferences] = useState({
     supermarket: '',
     categories: []
   });
 
-  // Clear AsyncStorage for testing (optional)
+  // Clear AsyncStorage for testing 
   useEffect(() => {
     const clearStorageForTesting = async () => {
       await AsyncStorage.clear();
@@ -65,7 +63,6 @@ const Index = () => {
     clearStorageForTesting();
   }, []);
 
-  // Check user authentication status
   useEffect(() => {
     const checkUserAuthentication = async () => {
       try {
@@ -85,7 +82,7 @@ const Index = () => {
     checkUserAuthentication();
   }, []);
 
-  // Show loading indicator while checking auth state
+
   if (loading || authState === AuthState.UNKNOWN) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -94,7 +91,7 @@ const Index = () => {
     );
   }
 
-  // Header component with logo
+
   const HeaderWithLogo = () => {
     return (
       <View style={styles.headerContainer}>
@@ -138,7 +135,7 @@ const Index = () => {
                 options={{ headerShown: false }}
               />
               <Stack.Screen name="Wishlist" 
-                options={{ title: 'Wishlist' }}
+                options={{ title: 'Preferences' }}
                 children={(props) => (
                   <WishlistPage
                     {...props}

@@ -9,10 +9,50 @@ import { useRouter } from 'expo-router';
 import EmailSubscriptionPopup from '@/components/EmailSubscriptionPopup';
 import OnboardingWizard from '@/components/Wizard';
 import AppNavigator from '@/app/(tabs)/_layout';
+import * as Notifications from 'expo-notifications'; 
 
-const LoginPage = ({  navigation, setIsAuthenticated }) => {
+async function registerForPushNotificationsAsync() {
+  let token;
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== 'granted') {
+    Alert.alert('Failed to get push token for push notification!');
+    return;
+  }
+  token = (await Notifications.getExpoPushTokenAsync()).data;
+  console.log('Expo Push Token:', token);
+  return token;
+}
+
+const registerDeviceToken = async (token, email) => {
+  console.log('Attempting to register push token:', token);
+  try {
+    const response = await fetch('http://192.168.1.102:5003/register-push-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, userIdentifier: email }),
+    });
+    const data = await response.json();
+    console.log('Response data:', data); 
+    if (data.success) {
+      console.log('Push token registered successfully:', data.message);
+    } else {
+      console.error('Failed to register push token:', data.error);
+    }
+  } catch (error) {
+    console.error('Error registering push token:', error);
+  }
+};
+
+const LoginPage = ({ navigation, setIsAuthenticated }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const router = useRouter();
   const [showPopup, setShowPopup] = useState(false);
@@ -34,7 +74,7 @@ const LoginPage = ({  navigation, setIsAuthenticated }) => {
   };
 
   const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  
+
   const isValidPassword = (password) =>
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password);
 
@@ -53,6 +93,8 @@ const LoginPage = ({  navigation, setIsAuthenticated }) => {
         await AsyncStorage.setItem('loginname', email);
         setIsAuthenticated();
         checkSubscriptionStatus(); 
+        const token = await registerForPushNotificationsAsync();
+        if (token) await registerDeviceToken(token);
         router.push('/Wizard');
       } else {
         Alert.alert('Error', 'Invalid email or password.');
@@ -62,42 +104,6 @@ const LoginPage = ({  navigation, setIsAuthenticated }) => {
     }
   };
 
-  async function registerForPushNotificationsAsync() {
-    let token;
-    if (Constants.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      if (finalStatus !== 'granted') {
-        alert('Failed to get push token for push notification!');
-        return;
-      }
-      token = (await Notifications.getExpoPushTokenAsync()).data;
-      console.log(token);
-    } else {
-      alert('Must use physical device for Push Notifications');
-    }
-    return token;
-  }
-
-
-  async function registerDeviceToken(token) {
-    try {
-      const response = await fetch('http://192.168.1.104:5002/register-device', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-      const data = await response.json();
-      console.log(data.message);
-    } catch (error) {
-      console.error('Error registering device token:', error);
-    }
-  }
-
   const handleCreateAccount = async () => {
     if (!isValidEmail(email)) {
       Alert.alert('Error', 'Please enter a valid email address.');
@@ -106,6 +112,11 @@ const LoginPage = ({  navigation, setIsAuthenticated }) => {
 
     if (!isValidPassword(password)) {
       Alert.alert('Error', 'Password must be at least 8 characters with uppercase, lowercase, number, and symbol.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match.');
       return;
     }
 
@@ -137,20 +148,13 @@ const LoginPage = ({  navigation, setIsAuthenticated }) => {
       handleCreateAccount();
     } else {
       handleLogin();
-      registerDeviceToken(token)
-      registerForPushNotificationsAsync();
     }
   };
 
   return (
     <SafeAreaContainer>
       <LoginScrollContainer contentContainerStyle={{ flexGrow: 1, paddingBottom: 50 }}>
-        <LoginGradient
-          colors={['#8ae1e6', '#34c2b3']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 20, marginBottom: 40, padding: 30 }}
-        >
+        <LoginGradient colors={['#8ae1e6', '#34c2b3']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 20, marginBottom: 40, padding: 30 }}>
           <LoginTitle>{isCreatingAccount ? 'Create Account' : 'Welcome!'}</LoginTitle>
           <LoginSubTitle>
             {isCreatingAccount ? 'Sign up to start saving and comparing prices.' : 'Log in to continue comparing prices!'}
@@ -158,20 +162,11 @@ const LoginPage = ({  navigation, setIsAuthenticated }) => {
         </LoginGradient>
 
         <LoginForm>
-          <InputField
-            placeholder="Email"
-            placeholderTextColor="#aaa"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-          />
-          <InputField
-            placeholder="Password"
-            placeholderTextColor="#aaa"
-            secureTextEntry={true}
-            value={password}
-            onChangeText={setPassword}
-          />
+          <InputField placeholder="Email" placeholderTextColor="#aaa" keyboardType="email-address" value={email} onChangeText={setEmail} />
+          <InputField placeholder="Password" placeholderTextColor="#aaa" secureTextEntry={true} value={password} onChangeText={setPassword} />
+          {isCreatingAccount && (
+            <InputField placeholder="Confirm Password" placeholderTextColor="#aaa" secureTextEntry={true} value={confirmPassword} onChangeText={setConfirmPassword} />
+          )}
           <LoginButton onPress={handleSubmit}>
             <ButtonText>{isCreatingAccount ? 'Sign Up' : 'Login'}</ButtonText>
           </LoginButton>

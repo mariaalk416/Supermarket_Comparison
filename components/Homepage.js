@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components/native';
-import { ScrollView, TextInput, TouchableOpacity, Text, View, Image } from 'react-native';
+import { ScrollView, TextInput, TouchableOpacity, Text, View, Image, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,36 +10,39 @@ import * as Animatable from 'react-native-animatable';
 import RealTimePriceIcon from '../assets/images/pic1.jpg';
 import PersonalizedIcon from '../assets/images/pic2.png';
 import CompareIcon from '../assets/images/pic3.jpg';
+import back from '../assets/images/backimage.jpg';
 
 const HomePage = ({ navigation, route}) => {
   //const { preferences } = route.params;
   return (
     <SafeAreaContainer edges={['left', 'right']}>
       <ScrollContainer contentContainerStyle={{ flexGrow: 1, paddingBottom: 115 }}>
-        <HeroGradient
-          colors={['#8ae1e6', '#34c2b3']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 20, padding: 20 }}
+        <ImageBackground
+          source={back}
+          resizeMode="cover"
+          style={{ width: '100%', borderRadius: 20, overflow: 'hidden' }}
         >
-          <HeroContent>
-            <Title>Discover & Save with Supermarket Price Comparisons!</Title>
-            <SubTitle>
-              
-            </SubTitle>
-            <TouchableOpacity onPress={() => navigation.navigate('Search')}
-              activeOpacity={0.8}
-              style={{ width: '90%' }}>
-              <SearchBar>
-                <SearchInput onPress={() => navigation.navigate('Search')}
-              activeOpacity={0.8} placeholder="Search for products..." placeholderTextColor="#aaa"/>
-                <SearchButton>
-                  <Icon name="search" size={20} color="#fff" />
-                </SearchButton>
-              </SearchBar>
-            </TouchableOpacity>
-          </HeroContent>
-        </HeroGradient>
+          <Overlay
+          >
+            <HeroContent>
+              <Title>Discover & Save with Supermarket Price Comparisons!</Title>
+              <SubTitle>
+                
+              </SubTitle>
+              <TouchableOpacity onPress={() => navigation.navigate('Search')}
+                activeOpacity={1}
+                style={{ width: '100%' }}>
+                <SearchBar>
+                  <SearchInput onPress={() => navigation.navigate('Search')}
+                activeOpacity={0.8} placeholder="Search for products..." placeholderTextColor="#aaa"/>
+                  <SearchButton>
+                    <Icon name="search" size={20} color="#fff" />
+                  </SearchButton>
+                </SearchBar>
+              </TouchableOpacity>
+            </HeroContent>
+          </Overlay>
+        </ImageBackground>
         <FeaturesSection>
           <AnimatedFeatureCard animation="fadeInUp" delay={300}>
             <CardGradient colors={['#e0f7f9', '#ffffff']}>
@@ -64,9 +67,9 @@ const HomePage = ({ navigation, route}) => {
             <CardGradient colors={['#e0f7f9', '#ffffff']}>
               <CardIcon source={PersonalizedIcon} />
               <FeatureContent>
-                <FeatureTitle>Wishlist</FeatureTitle>
+                <FeatureTitle>Preferences</FeatureTitle>
                 <FeatureDescription>
-                  Save your favorite products.
+                  Save your preferences.
                 </FeatureDescription>
                 <CardButton style={{ 
                   shadowColor: '#000', 
@@ -74,7 +77,7 @@ const HomePage = ({ navigation, route}) => {
                   shadowOpacity: 0.25, 
                   shadowRadius: 3.84 
                   }} onPress={() => navigation.navigate('Wishlist')}>
-                  <ButtonText>View Wishlist</ButtonText>
+                  <ButtonText>View Preferences</ButtonText>
                 </CardButton>
               </FeatureContent>
             </CardGradient>
@@ -119,6 +122,13 @@ const HeroGradient = styled(LinearGradient)`
   margin-bottom: 20px;
   padding: 20px;
 `;
+const Overlay = styled.View`
+  background-color: rgba(210, 201, 201, 0.5);
+  padding: 40px 20px;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+`;
 
 const HeroContent = styled(View)`
   align-items: center;
@@ -127,7 +137,7 @@ const HeroContent = styled(View)`
 const Title = styled(Text)`
   font-size: 28px;
   font-weight: bold;
-  color: #333333; 
+  color:rgb(0, 0, 0); 
   text-align: center;
   margin-bottom: 10px;
 `;
@@ -142,6 +152,7 @@ const SubTitle = styled(Text)`
 const SearchBar = styled(View)`
   flex-direction: row;
   align-items: center;
+  width : 300px;
 `;
 
 const SearchInput = styled(TextInput)`

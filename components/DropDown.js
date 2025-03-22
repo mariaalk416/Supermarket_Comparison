@@ -10,6 +10,7 @@ import {
   ScrollView,
 } from 'react-native';
 import PropTypes from 'prop-types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * Helper function to return the default array if the incoming array is missing or empty.
@@ -21,7 +22,7 @@ const getInitialArray = (incoming, def) => {
   return incoming && incoming.length > 0 ? incoming : def;
 };
 
-const defaultStores = ['Sklavenitis', 'Lidl', 'Alpahmega', 'Poplife'];
+const defaultStores = ['Sklavenitis', 'Lidl', 'Alphamega', 'Poplife'];
 const defaultProducts = [
   'Apple Juice',
   'Orange Juice',
@@ -34,19 +35,17 @@ const defaultProducts = [
   'Tomato Sauce',
   'Chicken',
 ];
-const defaultCategories = ['Pasta', 'Bread', 'Dairy', 'Fruits', 'Vegetables'];
+const defaultCategories = ['Pasta', 'Juices', 'Bread', 'Dairy', 'Fruits', 'Vegetables'];
 
 /**
- * ManageDropdownsPage lets the user add new values for stores, products, and categories.
- * Default values are provided if none are passed in or if the passed arrays are empty.
  *
  * @param {object} props
- * @param {string[]} props.stores - The initial list of stores.
- * @param {string[]} props.products - The initial list of product names.
- * @param {string[]} props.categories - The initial list of categories.
- * @param {(updatedStores: string[], updatedProducts: string[], updatedCategories: string[]) => void} props.onDropdownUpdate - Callback to update the central state.
- * @param {object} props.route - The navigation route prop.
- * @param {object} props.navigation - The navigation prop.
+ * @param {string[]} props.stores 
+ * @param {string[]} props.products 
+ * @param {string[]} props.categories 
+ * @param {(updatedStores: string[], updatedProducts: string[], updatedCategories: string[]) => void} props.onDropdownUpdate 
+ * @param {object} props.route
+ * @param {object} props.navigation
  */
 const ManageDropdownsPage = ({
   route,
@@ -56,7 +55,6 @@ const ManageDropdownsPage = ({
   categories: propCategories = [],
   onDropdownUpdate,
 }) => {
-  // Note: In your navigator you pass the key "productNames" for products.
   const initialStores = route.params?.stores && route.params.stores.length > 0
     ? route.params.stores
     : getInitialArray(propStores, defaultStores);
@@ -107,12 +105,12 @@ const ManageDropdownsPage = ({
     Keyboard.dismiss();
   };
 
-  const handleSave = () => {
-    if (onDropdownUpdate) {
-      onDropdownUpdate(stores, products, categories);
+  const handleSave = async () => {
+    if (route.params?.onDropdownUpdate) {
+      route.params.onDropdownUpdate(stores, products, categories);
     }
-    // Navigate back to the Admin page with updated dropdown data.
-    navigation.navigate('Admin', { stores, productNames: products, categories });
+    await AsyncStorage.setItem('dropdowns', JSON.stringify({ stores, categories }));
+    navigation.goBack();
   };
 
   return (

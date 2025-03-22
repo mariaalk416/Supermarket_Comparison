@@ -16,18 +16,28 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 //images
 import milk from '../assets/images/milk.jpg'
 import orangeJuice from '../assets/images/orange-juice.jpg'
 import appleJuice from '../assets/images/apple-juice.jpg'
-import Bread from '../assets/images/bread.jpg'
+import bread from '../assets/images/bread.jpg'
 
 const AdminPage = ({ route, navigation, stores: externalStores, products: externalProducts, categories: externalCategories }) => {
-  // Load initial values from route.params, external props, or default demo arrays
-  const initialStores = route.params?.stores || externalStores || ['Sklavenitis', 'Lidl', 'Alpahmega', 'Poplife'];
-  const initialProducts = route.params?.productNames || externalProducts || [];
-  const initialCategories = route.params?.categories || externalCategories || ['Pasta', 'Bread', 'Dairy', 'Fruits', 'Vegetables'];
+
+  const initialStores = route.params?.stores || externalStores || ['Sklavenitis', 'Lidl', 'Alphamega', 'Poplife'];
+  const initialProducts = route.params?.productNames || externalProducts || ['Apple Juice',
+  'Orange Juice',
+  'Milk',
+  'Bread',
+  'Cheese',
+  'Eggs',
+  'Yogurt',
+  'Pasta',
+  'Tomato Sauce',
+  'Chicken',];
+  const initialCategories = route.params?.categories || externalCategories || ['Pasta', 'Juices','Bread', 'Dairy', 'Fruits', 'Vegetables'];
 
   const [productList, setProductList] = useState([]);
   const [stores, setStores] = useState(initialStores);
@@ -46,20 +56,106 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
   const [leafletImage, setLeafletImage] = useState(null);
   const [uploading, setUploading] = useState(false);
 
-  // For editing a product's price
   const [editingProductId, setEditingProductId] = useState(null);
   const [editingPrice, setEditingPrice] = useState('');
 
-  // Helper: Generate unique id using timestamp and name
   const generateUniqueId = (name, store) => `${name}-${store}-${Date.now()}`;
 
-  // Load products from AsyncStorage on mount.
+  const fetchWithTimeout = async (url, options, timeout = 10000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+  
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+  
+    return response;
+  };
+
+  const handleDropdownUpdate = (updatedStores, updatedProducts, updatedCategories) => {
+    setStores(updatedStores);
+    setProducts(updatedProducts);
+    setCategories(updatedCategories);
+  };
+  
+  
+  const handlePriceReduction = async (productId, newPrice) => {
+    try {
+      const response = await fetchWithTimeout('http://192.168.1.102:5003/admin/price-reduction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, newPrice }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        Alert.alert('Price reduced and notifications sent.');
+      } else {
+        Alert.alert('Failed to reduce price:', data.error);
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    }
+  };
+
+  const uploadLeaflet = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Gallery permission is required to upload leaflets.');
+        return;
+      }
+  
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'], 
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+  
+      if (!result.canceled) {
+        const uri = result.assets[0].uri;
+        setLeafletImage(uri);
+      
+        const formData = new FormData();
+        formData.append('leaflet', {
+          uri,
+          name: 'leaflet.jpg',
+          type: 'image/jpeg',
+        });
+      
+        const response = await fetch('http://192.168.1.102:5003/upload-leaflet', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      
+        const data = await response.json();
+        if (response.ok) {
+          Alert.alert('Success', 'Leaflet uploaded & emails sent!');
+      
+          const existing = JSON.parse(await AsyncStorage.getItem('leaflets')) || [];
+          const updated = [uri, ...existing]; 
+          await AsyncStorage.setItem('leaflets', JSON.stringify(updated));
+        } else {
+          Alert.alert('Error', data.message || 'Failed to upload leaflet.');
+        }
+      }      
+    } catch (error) {
+      console.error('Error uploading leaflet:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    }
+  };
+  
   useEffect(() => {
     const loadProducts = async () => {
       try {
         const storedProducts = await AsyncStorage.getItem('products');
         let loadedProducts = storedProducts ? JSON.parse(storedProducts) : [];
-        // If no products exist, initialize with some demo products.
+        // initialize with demo products.
         if (loadedProducts.length === 0) {
           loadedProducts = [
             {
@@ -68,7 +164,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
               store: 'Lidl',
               price: '2.99',
               category: 'Juices',
-              image: appleJuice,
+              image: Image.resolveAssetSource(appleJuice).uri,
             },
             {
               id: generateUniqueId('Orange Juice', 'Lidl'),
@@ -76,7 +172,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
               store: 'Lidl',
               price: '3.49',
               category: 'Juices',
-              image: orangeJuice,
+              image: Image.resolveAssetSource(orangeJuice).uri,
             },
             {
               id: generateUniqueId('Milk', 'Sklavenitis'),
@@ -84,15 +180,15 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
               store: 'Sklavenitis',
               price: '1.99',
               category: 'Dairy',
-              image: milk,
+              image: Image.resolveAssetSource(milk).uri,
             },
             {
-              id: generateUniqueId('Bread', 'Alpahmega'),
+              id: generateUniqueId('Bread', 'Alphamega'),
               name: 'Bread',
-              store: 'Alpahmega',
+              store: 'Alphamega',
               price: '1.49',
               category: 'Bread',
-              productImage: Bread,
+              image: Image.resolveAssetSource(bread).uri,
             },
           ];
           await AsyncStorage.setItem('products', JSON.stringify(loadedProducts));
@@ -114,23 +210,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
     }
   };
 
-  const handleReducePrice = (productId) => {
-    const updatedProducts = productList.map((item) => {
-      if (item.id === productId) {
-        if (parseFloat(editingPrice) < parseFloat(item.price)) {
-          // Trigger push notification 
-          sendPriceReductionNotification(item, editingPrice);
-        }
-        return { ...item, price: editingPrice };
-      }
-      return item;
-    });
-    setProductList(updatedProducts);
-    saveProducts(updatedProducts);
-    setEditingProductId(null);
-    setEditingPrice('');
-  };
-
+  
   const handleAddProduct = () => {
     if (!productName || !storeName || !storePrice.trim() || !category || !productImage) {
       Alert.alert('Validation Error', 'Please select product, store, price, category, and image.');
@@ -143,10 +223,10 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
       store: storeName,
       price: storePrice,
       category,
-      productImage: productImage,
+      image: productImage,
     };
 
-    // Check if product with the same id already exists to avoid duplicate keys
+    // avoid duplicates
     if (productList.some((item) => item.id === newProduct.id)) {
       Alert.alert('Error', 'This product already exists.');
       return;
@@ -156,12 +236,10 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
     setProductList(updatedProducts);
     saveProducts(updatedProducts);
 
-    // Optionally update the dropdown values if new product is added
     if (!products.includes(productName)) {
       setProducts([...products, productName]);
     }
 
-    // Reset form fields
     setProductName(null);
     setStoreName(null);
     setCategory(null);
@@ -170,12 +248,24 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
     Keyboard.dismiss();
   };
 
-  // Update productImage state after picking an image
+  useFocusEffect(
+    React.useCallback(() => {
+      if (route.params?.updatedDropdowns) {
+        const { stores, productNames, categories } = route.params.updatedDropdowns;
+        setStores(stores);
+        setProducts(productNames);
+        setCategories(categories);
+  
+        navigation.setParams({ updatedDropdowns: null });
+      }
+    }, [route.params])
+  );
+
   const pickImage = async () => {
     try {
       setUploading(true);
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
+  
       if (status !== 'granted') {
         Alert.alert(
           'Permission Denied',
@@ -188,120 +278,61 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
           aspect: [4, 3],
           quality: 1,
         });
-
-        if (!result.canceled) {
-          const uri = result.assets[0].uri;
-          setProductImage(uri);
-          Alert.alert('Success', 'Image uploaded successfully!');
-        }
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const sendPriceReductionNotification = (product, newPrice) => {
-    const message = {
-      notification: {
-        title: 'Price Reduced!',
-        body: `${product.name} is now ${newPrice}€ at ${product.store}.`,
-      },
-      // Send to multiple tokens
-      tokens: subscribedDeviceTokens,
-    };
   
-    admin.messaging().sendMulticast(message)
-      .then((response) => {
-        console.log('Successfully sent message:', response);
-      })
-      .catch((error) => {
-        console.error('Error sending message:', error);
-      });
-  };
-
-  const uploadLeaflet = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Gallery permission is required to upload leaflets.');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        const uri = result.assets[0].uri;
-        setLeafletImage(uri);
-
-        const formData = new FormData();
-        formData.append('leaflet', {
-          uri,
-          name: 'leaflet.jpg',
-          type: 'image/jpeg',
-        });
-
-        const response = await fetch('http://192.168.1.104:5002/upload-leaflet', {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-          Alert.alert('Success', 'Leaflet uploaded & emails sent!');
-          const storedLeaflets = JSON.parse(await AsyncStorage.getItem("leaflets")) || [];
-          const newLeaflets = [...storedLeaflets, uri];
-          await AsyncStorage.setItem("leaflets", JSON.stringify(newLeaflets));
-        } else {
-          Alert.alert('Error', data.message || 'Failed to upload leaflet.');
+        if (!result.canceled && result.assets?.length > 0) {
+          const uri = result.assets[0].uri;
+    
+          if (uri) {
+            console.log('Selected Image URI:', uri);
+            setProductImage(uri);
+            Alert.alert('Success', 'Image uploaded successfully!');
+          } else {
+            Alert.alert('Error', 'Image URI is missing.');
+          }
         }
       }
-    } catch (error) {
-      console.error('Error uploading leaflet:', error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
-    }
-  };
+      } catch (error) {
+        console.error('Error picking image:', error);
+        Alert.alert('Error', 'Something went wrong. Please try again.');
+      } finally {
+        setUploading(false);
+      }
+    };
 
-  // Allow price edit functionality
+
   const handleEditPrice = (productId, currentPrice) => {
     setEditingProductId(productId);
     setEditingPrice(currentPrice);
   };
 
   const handleSavePrice = (productId) => {
-    const updatedProducts = productList.map((item) => {
-      if (item.id === productId) {
-        return { ...item, price: editingPrice };
-      }
-      return item;
-    });
+    const product = productList.find((item) => item.id === productId);
+    const originalPrice = parseFloat(product?.price || '0');
+    const newPrice = parseFloat(editingPrice || '0');
+  
+    if (isNaN(newPrice) || newPrice <= 0) {
+      Alert.alert('Error', 'Please enter a valid price.');
+      return;
+    }
+  
+    const updatedProducts = productList.map((item) =>
+      item.id === productId ? { ...item, price: newPrice.toFixed(2) } : item
+    );
+  
     setProductList(updatedProducts);
     saveProducts(updatedProducts);
     setEditingProductId(null);
     setEditingPrice('');
+  
+    if (newPrice < originalPrice) {
+      handlePriceReduction(productId, newPrice); 
+    }
   };
 
-  // Load any updated dropdown values from route.params if they change
-  useEffect(() => {
-    if (route.params?.stores) setStores(route.params.stores);
-    if (route.params?.products) setProducts(route.params.productNames);
-    if (route.params?.categories) setCategories(route.params.categories);
-  }, [route.params]);
 
   const filteredProducts = productList.filter(
     (item) => item.name && item.store && item.price
   );
-
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -327,11 +358,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
                 stores,
                 products,
                 categories,
-                onDropdownUpdate: (updatedStores, updatedProducts, updatedCategories) => {
-                  setStores(updatedStores);
-                  setProducts(updatedProducts);
-                  setCategories(updatedCategories);
-                },
+                onDropdownUpdate: handleDropdownUpdate,
               })
             }
           >
@@ -409,14 +436,14 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
                       onChangeText={setEditingPrice}
                       keyboardType="numeric"
                     />
-                    <TouchableOpacity style={styles.editButton} onPress={() => handleSavePrice(item.id)}>
+                    <TouchableOpacity style={styles.editButton} onPress={() => {handleSavePrice(item.id);}}>
                       <Text style={styles.buttonText}>Save</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Text style={styles.productText}>Price: {item.price}€</Text>
-                    <TouchableOpacity style={styles.editButton} onPress={() => handleEditPrice(item.id, item.price)}>
+                    <TouchableOpacity style={styles.editButton} onPress={() => {handleEditPrice(item.id, item.price);}}>
                       <Text style={styles.buttonText}>Edit Price</Text>
                     </TouchableOpacity>
                   </View>
