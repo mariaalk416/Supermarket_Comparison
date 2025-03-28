@@ -3,6 +3,8 @@ import { SafeAreaView, ScrollView, TouchableOpacity, Text, View } from 'react-na
 import styled from 'styled-components/native';
 import PropTypes from 'prop-types';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const OnboardingWizard = ({ wizardCompleted, stores, categories }) => {
   const [step, setStep] = useState(1);
   const [preferences, setPreferences] = useState({
@@ -30,8 +32,14 @@ const OnboardingWizard = ({ wizardCompleted, stores, categories }) => {
 
   const nextStep = () => setStep(step + 1);
 
-  const finishWizard = () => {
-    wizardCompleted(preferences);
+  const finishWizard = async () => {
+    try {
+      await AsyncStorage.setItem('userPreferences', JSON.stringify(preferences));
+     
+      wizardCompleted(preferences);
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+    }
   };
 
   return (

@@ -14,10 +14,21 @@ import { Icon } from 'react-native-elements';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OnboardingWizard from '@/components/Wizard';
 
+
+interface Preferences {
+  supermarket: string[];
+  categories: string[];
+}
+
+
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-const Tabs = ({ setIsAuthenticated }: { setIsAuthenticated: (value: boolean) => void }) => (
+interface TabsLayoutProps {
+  preferences: Preferences;
+  setIsAuthenticated: (value: boolean) => void;
+}
+const Tabs: React.FC<TabsLayoutProps> =  ({setIsAuthenticated }: { setIsAuthenticated: (value: boolean) => void }, preferences: TabsLayoutProps ) => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       tabBarStyle: {
@@ -46,7 +57,7 @@ const Tabs = ({ setIsAuthenticated }: { setIsAuthenticated: (value: boolean) => 
       headerShown: false,
     })}
   >
-    <Tab.Screen name="Home" component={HomePage} />
+    <Tab.Screen name="Home" children={(props) => <HomePage {...props} preferences={preferences} />} />
     <Tab.Screen name="Admin" component={AdminPage} />
     <Tab.Screen name="Cart" component={Cart} />
     <Tab.Screen name="Map" component={Map} />

@@ -28,6 +28,11 @@ enum AuthState {
   AUTHENTICATED,
 }
 
+interface Preferences {
+  supermarket: string[];
+  categories: string[];
+}
+
 const Stack = createStackNavigator();
 
 const Index = () => {
@@ -48,9 +53,9 @@ const Index = () => {
     'Chicken',
   ]);
   const [categories, setCategories] = useState(['Pasta', 'Juices', 'Bread', 'Dairy', 'Fruits', 'Vegetables']);
-  const [wizardPreferences, setWizardPreferences] = useState({
-    supermarket: '',
-    categories: []
+  const [wizardPreferences, setWizardPreferences] = useState<Preferences>({
+    supermarket: [], 
+    categories: [] 
   });
 
   // Clear AsyncStorage for testing 
@@ -116,6 +121,7 @@ const Index = () => {
                   console.log('Wizard finished with preferences:', preferences);
                   setWizardPreferences(preferences);
                   setShouldNavigateToWizard(false);
+                  AsyncStorage.setItem('userPreferences', JSON.stringify(preferences));
                 }}
                 stores={stores}
                 categories={categories}
@@ -124,16 +130,20 @@ const Index = () => {
           />
           ) : (
             <>
-              <Stack.Screen
-                name="TabsLayout"
-                component={TabsLayout}
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="Home"
-                component={HomePage}
-                options={{ headerShown: false }}
-              />
+              <Stack.Screen name="TabsLayout" options={{ headerShown: false }}>
+                {(props) => (
+                  <TabsLayout 
+                    {...props} 
+                    preferences={wizardPreferences}
+                    setIsAuthenticated={(value: boolean) => {
+                      setAuthState(value ? AuthState.AUTHENTICATED : AuthState.NOT_AUTHENTICATED);
+                    }}
+                  />
+                )}
+              </Stack.Screen>
+              <Stack.Screen name="Home">
+                {(props) => <HomePage {...props} preferences={wizardPreferences} />}
+              </Stack.Screen>
               <Stack.Screen name="Wishlist" 
                 options={{ title: 'Preferences' }}
                 children={(props) => (
