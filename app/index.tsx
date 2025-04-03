@@ -1,8 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { NavigationContainer, NavigationIndependentTree } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { Image, Text, StyleSheet, View, ActivityIndicator } from 'react-native';
+import { 
+  NavigationContainer,
+  DrawerActions,
+  useNavigation, 
+  NavigationIndependentTree
+} from '@react-navigation/native';
+import { 
+  createStackNavigator
+} from '@react-navigation/stack';
+import { 
+  createDrawerNavigator,
+  DrawerContentScrollView,
+  DrawerItemList,
+  DrawerItem 
+} from '@react-navigation/drawer';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import { 
+  Image, 
+  Text, 
+  StyleSheet, 
+  View, 
+  ActivityIndicator,
+  TouchableOpacity 
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import styled from 'styled-components/native';
 import { LogBox } from 'react-native';
 import HomePage from '../components/Homepage'; 
 import LoginPage from '../components/LoginPage';
@@ -17,6 +39,7 @@ import SearchPage from '@/components/Search';
 import Cart from '@/components/Cart';
 import Map from '@/components/Map';
 import OnboardingWizard from '@/components/Wizard';
+import SettingsPage from '@/components/Settings'; 
 
 LogBox.ignoreLogs([
   'Error: Attempted to navigate before mounting the Root Layout component.',
@@ -34,8 +57,70 @@ interface Preferences {
 }
 
 const Stack = createStackNavigator();
+const Drawer = createDrawerNavigator();
 
+const HeaderWithLogo = () => (
+  <View style={styles.headerContainer}>
+    <Image source={require('../assets/images/supermarket-logo.png')} style={styles.logo} />
+    <Text style={styles.appName}>ShopSmart</Text>
+  </View>
+);
+
+function CustomHeader() {
+  const navigation = useNavigation();
+  
+  return (
+    <View style={styles.header}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={{ position: 'absolute',
+          right: 350,
+          transform: [{ translateY: -10 }], display: navigation.canGoBack() ? 'flex' : 'none' }}
+      >
+        <AntDesign name="left" size={24} color="black" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}>
+        <View style={styles.menuIcon}>
+          <View style={styles.menuLine} />
+          <View style={styles.menuLine} />
+          <View style={styles.menuLine} />
+        </View>
+      </TouchableOpacity>
+      <View style={styles.headerContainer}>
+        <Image source={require('../assets/images/supermarket-logo.png')} style={styles.logo} />
+        <Text style={styles.appName}>ShopSmart</Text>
+      </View>
+    </View>
+  );
+}
+
+function CustomDrawerContent(props) {
+  return (
+    <DrawerContentScrollView {...props} contentContainerStyle={styles.drawerContainer}>
+      <DrawerItem
+        label="Wishlist"
+        onPress={() => props.navigation.navigate('Wishlist')}
+        labelStyle={styles.drawerLabel}
+      />
+      <DrawerItem
+        label="Leaflets"
+        onPress={() => props.navigation.navigate('Leaflets')}
+        labelStyle={styles.drawerLabel}
+      />
+      <DrawerItem
+        label="Settings"
+        onPress={() => props.navigation.navigate('Settings')}
+        labelStyle={styles.drawerLabel}
+      />
+    </DrawerContentScrollView>
+  );
+}
 const Index = () => {
+  const [preferences, setPreferences] = useState<Preferences>({
+    supermarket: [],
+    categories: []
+  });
+
   const [authState, setAuthState] = useState<AuthState>(AuthState.UNKNOWN);
   const [loading, setLoading] = useState(true);
   const [shouldNavigateToWizard, setShouldNavigateToWizard] = useState(false);
@@ -43,12 +128,17 @@ const Index = () => {
   const [productNames, setProductNames] = useState([
     'Apple Juice',
     'Orange Juice',
-    'Milk',
+    'Whole Milk',
+    'Delact Milk',
     'Bread',
-    'Cheese',
+    'Edam Cheese',
+    'Gouda Cheese',
+    'Halloumi',
     'Eggs',
-    'Yogurt',
+    'Greek Yogurt',
+    'Greek Delact Yogurt',
     'Pasta',
+    'Butter',
     'Tomato Sauce',
     'Chicken',
   ]);
@@ -58,7 +148,6 @@ const Index = () => {
     categories: [] 
   });
 
-  // Clear AsyncStorage for testing 
   useEffect(() => {
     const clearStorageForTesting = async () => {
       await AsyncStorage.clear();
@@ -87,6 +176,19 @@ const Index = () => {
     checkUserAuthentication();
   }, []);
 
+  useEffect(() => {
+    const loadPrefs = async () => {
+      try {
+        const prefs = await AsyncStorage.getItem('userPreferences');
+        if (prefs) {
+          setPreferences(JSON.parse(prefs));
+        }
+      } catch (error) {
+        console.error('Error loading preferences:', error);
+      }
+    };
+    loadPrefs();
+  }, []);
 
   if (loading || authState === AuthState.UNKNOWN) {
     return (
@@ -96,150 +198,206 @@ const Index = () => {
     );
   }
 
-
-  const HeaderWithLogo = () => {
-    return (
-      <View style={styles.headerContainer}>
-        <Image source={require('../assets/images/supermarket-logo.png')} style={styles.logo} />
-        <Text style={styles.appName}>ShopSmart</Text>
-      </View>
-    );
-  };
-
   return (
-    <Stack.Navigator screenOptions={{ headerBackTitle: '' }}>
+    <NavigationIndependentTree>
+    <NavigationContainer>
       {authState === AuthState.AUTHENTICATED ? (
-        <>
+        <Drawer.Navigator
+          drawerContent={(props) => <CustomDrawerContent {...props} />}
+          screenOptions={{
+            header: () => <CustomHeader />,
+            drawerPosition: 'right',
+            swipeEnabled: true,
+          }}
+        >
+          {/* All your authenticated screens */}
           {shouldNavigateToWizard ? (
-            <Stack.Screen
-            name="Wizard"
-            options={{ headerShown: false }}
-            children={(props) => (
-              <OnboardingWizard
-                {...props}
-                wizardCompleted={(preferences) => {
-                  console.log('Wizard finished with preferences:', preferences);
-                  setWizardPreferences(preferences);
-                  setShouldNavigateToWizard(false);
-                  AsyncStorage.setItem('userPreferences', JSON.stringify(preferences));
-                }}
-                stores={stores}
-                categories={categories}
-              />
-            )}
-          />
+            <Drawer.Screen
+              name="Wizard">
+              {(props) => (
+                <OnboardingWizard
+                  {...props}
+                  wizardCompleted={(prefs: Preferences) => {
+                    console.log('Wizard finished with preferences:', prefs);
+                    setPreferences(prefs);
+                    AsyncStorage.setItem('userPreferences', JSON.stringify(prefs));
+                    setShouldNavigateToWizard(false);
+                  }}
+                  stores={stores}
+                  categories={categories}
+                />
+              )}
+            </Drawer.Screen>
           ) : (
             <>
-              <Stack.Screen name="TabsLayout" options={{ headerShown: false }}>
+              <Drawer.Screen name="TabsLayout">
                 {(props) => (
-                  <TabsLayout 
-                    {...props} 
-                    preferences={wizardPreferences}
-                    setIsAuthenticated={(value: boolean) => {
-                      setAuthState(value ? AuthState.AUTHENTICATED : AuthState.NOT_AUTHENTICATED);
-                    }}
-                  />
-                )}
-              </Stack.Screen>
-              <Stack.Screen name="Home">
-                {(props) => <HomePage {...props} preferences={wizardPreferences} />}
-              </Stack.Screen>
-              <Stack.Screen name="Wishlist" 
-                options={{ title: 'Preferences' }}
-                children={(props) => (
-                  <WishlistPage
+                  <TabsLayout
                     {...props}
-                    preferences={wizardPreferences}
-                    setPreferences={setWizardPreferences}
+                    preferences={preferences}
+                    setIsAuthenticated={(value) => 
+                      setAuthState(value ? AuthState.AUTHENTICATED : AuthState.NOT_AUTHENTICATED)
+                    }
                   />
                 )}
-               />
-              <Stack.Screen name="Leaflets" component={LeafletPage} options={{ title: 'Leaflets' }} />
-              <Stack.Screen name="ComparePrices" 
-               options={{ title: 'Compare Prices' }}
-               children={(props) => (
-                <ComparePage 
-                {...props} 
-                preferences={wizardPreferences}
-                 />
-              )}
-           />
-              <Stack.Screen name="ProductPage" component={ProductPage} options={{ title: 'Product Page' }} />
-              <Stack.Screen name="Cart" component={Cart} options={{ title: 'Cart' }} />
-              <Stack.Screen name="Map" component={Map} options={{ title: 'Map' }} />
-              <Stack.Screen
-                name="Admin"
-                options={{ title: 'Admin Page' }}
-                children={(props) => (
-                  <AdminPage
-                    {...props}
-                    stores={stores}
-                    products={productNames}
-                    categories={categories}
-                  />
-                )}
-              />
-              <Stack.Screen
-                name="ManageDropdownsPage"
-                options={{ title: 'Manage Dropdowns' }}
-                children={(props) => (
-                  <ManageDropdownsPage
-                    {...props}
-                    stores={stores}
-                    products={productNames}
-                    categories={categories}
-                    onDropdownUpdate={(updatedStores, updatedProducts, updatedCategories) => {
-                      setStores(updatedStores);
-                      setProductNames(updatedProducts);
-                      setCategories(updatedCategories);
-                    }}
-                  />
-                )}
-              />
-              <Stack.Screen
-                name="Search"
-                component={SearchPage}
-                options={{ title: 'Search' }}
-              />
-            </>
+              </Drawer.Screen>
+                <Drawer.Screen name="Home">
+                  {(props) => <HomePage {...props} preferences={preferences} />}
+                </Drawer.Screen>
+                <Drawer.Screen 
+                  name="Wishlist" 
+                  options={{ title: 'Preferences' }}
+                >
+                  {(props) => (
+                    <WishlistPage
+                      {...props}
+                      preferences={preferences}
+                      setPreferences={(newPrefs) => {
+                        setPreferences(newPrefs);
+                        AsyncStorage.setItem('userPreferences', JSON.stringify(newPrefs));
+                      }}
+                    />
+                  )}
+                </Drawer.Screen>
+                <Drawer.Screen 
+                  name="Leaflets" 
+                  component={LeafletPage} 
+                  options={{ title: 'Leaflets' }} 
+                />
+                <Drawer.Screen 
+                  name="ComparePrices" 
+                  options={{ title: 'Compare Prices' }}
+                  children={(props) => (
+                    <ComparePage 
+                      {...props} 
+                      preferences={wizardPreferences}
+                    />
+                  )}
+                />
+                <Drawer.Screen 
+                  name="ProductPage" 
+                  component={ProductPage} 
+                  options={{ title: 'Product Page' }} 
+                />
+                <Drawer.Screen 
+                  name="Cart" 
+                  component={Cart} 
+                  options={{ title: 'Cart' }} 
+                />
+                <Drawer.Screen 
+                  name="Map" 
+                  component={Map} 
+                  options={{ title: 'Map' }} 
+                />
+                <Drawer.Screen
+                  name="Admin"
+                  options={{ title: 'Admin Page' }}
+                  children={(props) => (
+                    <AdminPage
+                      {...props}
+                      stores={stores}
+                      products={productNames}
+                      categories={categories}
+                    />
+                  )}
+                />
+                <Drawer.Screen
+                  name="ManageDropdownsPage"
+                  options={{ title: 'Manage Dropdowns' }}
+                  children={(props) => (
+                    <ManageDropdownsPage
+                      {...props}
+                      stores={stores}
+                      products={productNames}
+                      categories={categories}
+                      onDropdownUpdate={(updatedStores, updatedProducts, updatedCategories) => {
+                        setStores(updatedStores);
+                        setProductNames(updatedProducts);
+                        setCategories(updatedCategories);
+                      }}
+                    />
+                  )}
+                />
+                <Drawer.Screen
+                  name="Search"
+                  component={SearchPage}
+                  options={{ title: 'Search' }}
+                />
+                <Drawer.Screen
+                  name="Settings"
+                  component={SettingsPage}
+                  options={{ title: 'Settings' }}
+                />
+                
+                </>
           )}
-        </>
+        </Drawer.Navigator>
       ) : (
-        <>
+        <Stack.Navigator>
           <Stack.Screen
             name="Login"
-            children={(props) => (
+            options={{
+              headerTitle: () => <HeaderWithLogo />,
+              headerStyle: { backgroundColor: '#34c2b3' },
+              headerTitleAlign: 'center'
+            }}
+          >
+            {(props) => (
               <LoginPage
                 {...props}
                 setIsAuthenticated={() => {
                   setAuthState(AuthState.AUTHENTICATED);
-                  setShouldNavigateToWizard(true); 
+                  setShouldNavigateToWizard(true);
                 }}
               />
             )}
-            options={{ headerShown: false }}
-          />
-        </>
+          </Stack.Screen>
+        </Stack.Navigator>
       )}
-    </Stack.Navigator>
+    </NavigationContainer>
+    </NavigationIndependentTree>
   );
 };
 
-
 const styles = StyleSheet.create({
+  header: {
+    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 10,
+    paddingVertical: 6, 
+    backgroundColor: '#34c2b3',
+    height: 85, 
+  },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   logo: {
-    width: 30,
-    height: 30,
-    marginRight: 10,
+    width: 24,  
+    height: 24,
+    marginRight: 9,
   },
   appName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  menuIcon: {
+    width: 25, 
+    height: 20,
+    justifyContent: 'space-between',
+    marginRight: 12,
+    position: 'absolute',
+    left: 220,
+    transform: [{ translateY: -25 }]
+  },
+  menuLine: {
+    right: 3,
+    height: 2,
+    width: 20,
+    backgroundColor: '#fff',
+    marginVertical: 2,
   },
 });
 

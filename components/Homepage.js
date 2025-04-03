@@ -234,7 +234,8 @@
 
 // export default HomePage;
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import styled from 'styled-components/native';
 import {
   Text, 
@@ -245,7 +246,6 @@ import {
   TouchableOpacity,
   Image,
   ImageBackground,
-  ScrollView,
   ActivityIndicator,
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -253,17 +253,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { LinearGradient } from 'expo-linear-gradient';
-import PropTypes from 'prop-types';
 
 import back from '../assets/images/backimage.jpg';
+import initialize from '../app/initProducts';
+import { groupProductsByName } from '../app/groupProducts';
 
-const HomePage = ({ navigation, route }) => {
-  // State initialization
-  const [preferences, setPreferences] = useState({
-    supermarket: [],
-    categories: []
-  });
-
+const HomePage = ({ navigation }) => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -272,79 +267,80 @@ const HomePage = ({ navigation, route }) => {
   const [dropdownItems, setDropdownItems] = useState([
     { label: 'All Categories', value: null }
   ]);
+  const [preferences, setPreferences] = useState({
+    supermarket: [],
+    categories: []
+  });
 
-  useEffect(() => {
-    const updatedItems = [
-      { label: 'Show All Products', value: null },
-      ...preferences.categories.map(cat => ({
-        label: cat,
-        value: cat.trim().toLowerCase()
-      }))
-    ];
-    setDropdownItems(updatedItems);
-  }, [preferences.categories]);
+  const loadData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      await initialize();
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // 1. Load preferences
-        const storedPrefs = await AsyncStorage.getItem('userPreferences');
-        const prefs = storedPrefs ? JSON.parse(storedPrefs) : { supermarket: [], categories: [] };
-        
-        // 2. Load products
-        const productsData = await AsyncStorage.getItem('products');
-        const productsList = productsData ? JSON.parse(productsData) : [];
-        
-        // Update state
-        setPreferences(prefs);
-        setProducts(
-          productsList
-            .filter(p => p.name && p.store && p.price && p.id && p.category)
-            .map(p => ({
-              ...p,
-              category: p.category.trim().toLowerCase()
-            }))
-        );
-        
-        // 3. Setup dropdown items
-        const items = [
-          { label: 'All Categories', value: null },
-          ...prefs.categories.map(cat => ({ label: cat, value: cat }))
-        ];
-        setDropdownItems(items);
-        
-      } catch (error) {
-        console.error('Error loading data:', error);
-        Alert.alert('Error', 'Failed to load data');
-      } finally {
-        setIsLoading(false);
+      // Load products
+      let productsData = await AsyncStorage.getItem('products');
+      if (!productsData) {
+        const defaultProducts = [];
+        await AsyncStorage.setItem('products', JSON.stringify(defaultProducts));
+        productsData = JSON.stringify(defaultProducts);
       }
-    };
+      const productsList = JSON.parse(productsData);
+      setProducts(productsList);
 
-    loadData();
-  }, [route.params]);
+      // Load preferences
+      const prefs = await AsyncStorage.getItem('userPreferences');
+      if (prefs) {
+        const parsedPrefs = JSON.parse(prefs);
+        setPreferences(parsedPrefs);
+      }
 
-  const filterByCategory = (cat) => {
-    console.log('Selected category:', cat);
-    setSelectedCategory(cat);
-  
-    if (!cat) {
-      const all = products.filter(p =>
-        preferences.supermarket.includes(p.store)
-      );
-      console.log('All filtered:', all);
-      setFilteredProducts(all);
+      // Initialize dropdown items
+      const uniqueCategories = [...new Set(productsList.map(p => p.category))];
+      setDropdownItems([
+        { label: 'All Categories', value: null },
+        ...uniqueCategories.map(cat => ({
+          label: cat.charAt(0).toUpperCase() + cat.slice(1),
+          value: cat,
+        })),
+      ]);
+
+      filterProducts(productsList, prefs ? JSON.parse(prefs) : preferences, null);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const filterProducts = useCallback((productsList, prefs, category) => {
+    if (!prefs || !prefs.supermarket || !prefs.categories) {
+      setFilteredProducts([]);
       return;
     }
-  
-    const filtered = products.filter(p =>
-      preferences.supermarket.includes(p.store) &&
-      p.category === cat
-    );
-    console.log('Filtered by category:', filtered);
-    setFilteredProducts(filtered);
-  };
 
+    let filtered = [...productsList];
+  
+    if (prefs.supermarket.length > 0) {
+      filtered = filtered.filter(p => prefs.supermarket.includes(p.store));
+    }
+    if (prefs.categories.length > 0) {
+      filtered = filtered.filter(p => prefs.categories.includes(p.category));
+    }
+  
+    if (category) {
+      filtered = filtered.filter(p => p.category === category);
+    }
+
+    filtered.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+  
+    const grouped = groupProductsByName(filtered, prefs, category);
+    setFilteredProducts(grouped);
+  }, []);
+
+  const filterByCategory = (category) => {
+    setSelectedCategory(category);
+    filterProducts(products, preferences, category);
+  };
 
   const addToCart = async (product) => {
     try {
@@ -358,160 +354,209 @@ const HomePage = ({ navigation, route }) => {
     }
   };
 
-  return (
-    <SafeAreaContainer edges={['left', 'right']}> 
-      <FlatList ListHeaderComponent={
-      <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
-      <Text>Preferred Supermarkets: {preferences.supermarket.join(', ')}</Text>
-            <Text>Categories: {preferences.categories.join(', ')}</Text>
-      <TouchableOpacity onPress={() => navigation.navigate('Search')}
-        activeOpacity={1}
-        style={{ width: '100%', marginBottom: 20 }}>
-        <SearchBar>
-          <SearchInput 
-            onPress={() => navigation.navigate('Search')}
-            activeOpacity={0.8} 
-            placeholder="Search for products..." 
-            placeholderTextColor="#aaa"
-          />
-          <SearchButton>
-            <Icon name="search" size={20} color="#fff" />
-          </SearchButton>
-        </SearchBar>
-      </TouchableOpacity>
-      
-      
-      <HeroBackground source={back} resizeMode="cover">
-      <Overlay>
-        <HeroContent>
-          <HeroTitle>Discover & Save with Supermarket Price Comparisons!</HeroTitle>
-        </HeroContent>
-      </Overlay>
-    </HeroBackground>
-          
-    <DropDownWrapper>
-      <DropDownPicker
-        open={dropdownOpen}
-        value={selectedCategory}
-        items={dropdownItems}
-        setOpen={setDropdownOpen}
-        setValue={setSelectedCategory}
-        onChangeValue={filterByCategory}
-        placeholder="Select a category"
-        style={{
-          backgroundColor: '#fff',
-          borderRadius: 25,
-          paddingHorizontal: 10,
-          borderColor: '#ccc',
-          elevation: 5,
-        }}
-        dropDownContainerStyle={{
-          backgroundColor: '#fff',
-          borderRadius: 10,
-          borderColor: '#ccc',
-          elevation: 5,
-        }}
-        zIndex={1000}
-        zIndexInverse={3000}
-      />
-    </DropDownWrapper>
-    </View>
-    }
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-      data={filteredProducts}
-    keyExtractor={(item) => item.id}
-    renderItem={({ item }) => (
-      <View style={{ paddingHorizontal: 20 }}>
-        <ProductCard>
-          <ProductImage source={{ uri: item.image }} />
-          <ProductDetails>
-            <ProductName>{item.name}</ProductName>
-            <ProductCategory>{item.category}</ProductCategory>
-            <ProductPrice>€{item.price}</ProductPrice>
-            <ProductStore>Store: {item.store}</ProductStore>
-          </ProductDetails>
-          <AddButton onPress={() => addToCart(item)}>
-            <AddButtonText>Add</AddButtonText>
-          </AddButton>
-        </ProductCard>
+  useFocusEffect(
+    useCallback(() => {
+      const refreshPrefsAndData = async () => {
+        const prefs = await AsyncStorage.getItem('userPreferences');
+        if (prefs) {
+          const parsedPrefs = JSON.parse(prefs);
+          setPreferences(parsedPrefs);
+          filterProducts(products, parsedPrefs, selectedCategory);
+        }
+      };
+  
+      refreshPrefsAndData();
+    }, [products, selectedCategory])
+  );
+
+  if (isLoading) {
+    return (
+      <SafeAreaContainer>
+        <ActivityIndicator size="large" color="#34c2b3" />
+      </SafeAreaContainer>
+    );
+  }
+
+  return (
+    <SafeAreaContainer edges={['left', 'right']}>
+      <View>
+        <HeaderContainer>
+          <PreferencesText>
+            Preferred Supermarkets: {preferences.supermarket.join(', ') || 'None selected'}
+          </PreferencesText>
+          
+          <SearchContainer>
+            <SearchInput 
+              onPress={() => navigation.navigate('Search')}
+              placeholder="Search for products..." 
+              placeholderTextColor="#aaa"
+            />
+            <SearchButton onPress={() => navigation.navigate('Search')}>
+              <Icon name="search" size={20} color="#fff" />
+            </SearchButton>
+          </SearchContainer>
+          
+          <HeroBackground source={back} resizeMode="cover">
+            <Overlay>
+              <HeroTitle>Discover & Save with Supermarket Price Comparisons!</HeroTitle>
+            </Overlay>
+          </HeroBackground>
+        </HeaderContainer>
       </View>
-    )}
-    ListEmptyComponent={
-      <EmptyText>No products found matching your preferences.</EmptyText>
-    }
-    contentContainerStyle={{ paddingBottom: 100 }}
-  />
-</SafeAreaContainer>
+  
+      {/* Dropdown */}
+      <View style={{ 
+        paddingHorizontal: 20,
+        marginBottom: 10,
+        zIndex: 1000,
+        elevation: 50
+      }}>
+        <DropDownPicker
+          open={dropdownOpen}
+          value={selectedCategory}
+          items={dropdownItems}
+          setOpen={setDropdownOpen}
+          setValue={setSelectedCategory}
+          onChangeValue={filterByCategory}
+          placeholder="Select a category"
+          style={dropdownStyles.picker}
+          dropDownContainerStyle={dropdownStyles.dropdown}
+          listMode="SCROLLVIEW"
+        />
+      </View>
+  
+      <FlatList
+        contentContainerStyle={{ 
+          paddingBottom: 100,
+          paddingHorizontal: 20
+        }}
+        data={filteredProducts}
+        keyExtractor={(item) => item.name}
+        renderItem={({ item }) => (
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('ProductPage', { product: item })}
+            style={{ marginBottom: 15 }}
+          >
+            <ProductCard>
+              <ProductImage source={{ uri: item.image }} />
+              <ProductDetails>
+                <ProductName>{item.name}</ProductName>
+                <ProductCategory>{item.category}</ProductCategory>
+                <ProductPrice>€{item.minPrice.toFixed(2)}</ProductPrice>
+                <ProductStore>Cheapest: {item.store}</ProductStore>
+              </ProductDetails>
+              <AddButton onPress={() => addToCart(item)}>
+                <AddButtonText>Add</AddButtonText>
+              </AddButton>
+            </ProductCard>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={
+          <EmptyContainer>
+            <EmptyText>No products found matching your preferences.</EmptyText>
+          </EmptyContainer>
+        }
+      />
+    </SafeAreaContainer>
   );
 };
 
-export default HomePage;
-
-
-const Container = styled.View`
+const SafeAreaContainer = styled(SafeAreaView)`
   flex: 1;
-  background-color: #f4fefd;
+  background-color: #e0f7f9;
+`;
+
+const HeaderContainer = styled.View`
   padding: 20px;
+`;
+
+const PreferencesText = styled.Text`
+  margin-bottom: 10px;
+  color: #555;
+`;
+
+const SearchContainer = styled.View`
+  flex-direction: row;
+  margin-bottom: 20px;
+`;
+
+const SearchInput = styled(TextInput)`
+  flex: 1;
+  background-color: #fff;
+  padding: 10px 15px;
+  border-top-left-radius: 25px;
+  border-bottom-left-radius: 25px;
+  color: #333;
+`;
+
+const SearchButton = styled(TouchableOpacity)`
+  padding: 10px 15px;
+  background-color: #34c2b3;
+  border-top-right-radius: 25px;
+  border-bottom-right-radius: 25px;
+  justify-content: center;
 `;
 
 const HeroBackground = styled(ImageBackground)`
   width: 100%;
-  border-radius: 20px;
+  height: 150px;
+  border-radius: 10px;
   overflow: hidden;
   margin-bottom: 20px;
 `;
 
-const SafeAreaContainer = styled(SafeAreaView)`
+const Overlay = styled.View`
+  background-color: rgba(210, 201, 201, 0.5);
   flex: 1;
-  background-color: #e0f7f9; 
-`;
-
-const ScrollContainer = styled(ScrollView)`
-  flex: 1;
+  justify-content: center;
+  align-items: center;
   padding: 20px;
 `;
 
-const Overlay = styled.View`
-  background-color: rgba(210, 201, 201, 0.5);
-  padding: 40px 20px;
-  justify-content: center;
-  align-items: center;
-`;
-
-const HeroContent = styled.View`
-  align-items: center;
-`;
-
-const DropDownWrapper = styled.View`
-  margin-top: 20px;
-  z-index: 1000;
-  elevation: 10;
-`;
-
 const HeroTitle = styled.Text`
-  font-size: 24px;
+  font-size: 22px;
   font-weight: bold;
   color: #000;
-  text-align: center;
-  margin-bottom: 15px;
+  text-align-vertical: top;
+  top: -20px;
 `;
 
+const dropdownStyles = {
+  picker: {
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 15,
+    borderColor: '#ccc',
+    padding: 10,
+    zIndex: 3000,
+    elevation: 10,
+  },
+  dropdown: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderColor: '#ccc',
+    zIndex: 3000,
+    elevation: 20,
+  },
+};
 
 const ProductCard = styled.View`
   flex-direction: row;
   background-color: #fff;
-  padding: 10px;
-  border-radius: 10px;
-  elevation: 3;
+  margin-horizontal: 20px;
   margin-bottom: 15px;
-  align-items: center;
+  padding: 15px;
+  border-radius: 10px;
 `;
 
 const ProductImage = styled.Image`
   width: 80px;
   height: 80px;
   border-radius: 8px;
-  margin-right: 10px;
+  margin-right: 15px;
 `;
 
 const ProductDetails = styled.View`
@@ -522,17 +567,20 @@ const ProductName = styled.Text`
   font-size: 16px;
   font-weight: bold;
   color: #333;
+  margin-bottom: 4px;
 `;
 
 const ProductCategory = styled.Text`
   font-size: 14px;
   color: #777;
+  margin-bottom: 4px;
 `;
 
 const ProductPrice = styled.Text`
   font-size: 16px;
   font-weight: bold;
   color: #34c2b3;
+  margin-bottom: 4px;
 `;
 
 const ProductStore = styled.Text`
@@ -540,45 +588,28 @@ const ProductStore = styled.Text`
   color: #999;
 `;
 
-const AddButton = styled.TouchableOpacity`
+const AddButton = styled(TouchableOpacity)`
   background-color: #34c2b3;
   padding: 8px 12px;
   border-radius: 5px;
+  align-self: flex-start;
+  margin-top: auto;
 `;
 
 const AddButtonText = styled.Text`
   color: #fff;
   font-weight: bold;
-  font-size: 12px;
+`;
+
+const EmptyContainer = styled.View`
+  padding: 20px;
+  align-items: center;
 `;
 
 const EmptyText = styled.Text`
-  text-align: center;
   color: #999;
-  margin-top: 20px;
+  font-size: 16px;
+  text-align: center;
 `;
 
-const SearchBar = styled(View)`
-  flex-direction: row;
-  align-items: center;
-  width : 300px;
-`;
-
-const SearchInput = styled(TextInput)`
-  flex: 1;
-  background-color: #ffffff; 
-  padding: 10px;
-  border-top-left-radius: 25px;
-  border-bottom-left-radius: 25px;
-  color: #333;
-  elevation: 3;
-`;
-
-const SearchButton = styled(TouchableOpacity)`
-  padding: 10px;
-  background-color: #34c2b3; 
-  border-top-right-radius: 25px;
-  border-bottom-right-radius: 25px;
-  justify-content: center;
-  elevation: 3; 
-`;
+export default HomePage;

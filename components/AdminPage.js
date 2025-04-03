@@ -17,24 +17,37 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import initialize from '../app/initProducts';
 
 //images
 import milk from '../assets/images/milk.jpg'
 import orangeJuice from '../assets/images/orange-juice.jpg'
 import appleJuice from '../assets/images/apple-juice.jpg'
 import bread from '../assets/images/bread.jpg'
+import yogurt from '../assets/images/yogurt.jpg'
+import delactyog from '../assets/images/delactYogurt.jpg'
+import halloumi from '../assets/images/halloumi.png'
+import delactMilk from '../assets/images/delactMilk.jpg'
+import butter from '../assets/images/butter.jpg'
+import edam from '../assets/images/edam.jpg'
+import gouda from '../assets/images/gouda.jpg'
 
 const AdminPage = ({ route, navigation, stores: externalStores, products: externalProducts, categories: externalCategories }) => {
 
   const initialStores = route.params?.stores || externalStores || ['Sklavenitis', 'Lidl', 'Alphamega', 'Poplife'];
   const initialProducts = route.params?.productNames || externalProducts || ['Apple Juice',
   'Orange Juice',
-  'Milk',
+  'Whole Milk',
+  'Delact Milk',
   'Bread',
-  'Cheese',
+  'Edam Cheese',
+  'Gouda Cheese',
+  'Halloumi',
   'Eggs',
-  'Yogurt',
+  'Greek Yogurt',
+  'Greek Delact Yogurt',
   'Pasta',
+  'Butter',
   'Tomato Sauce',
   'Chicken',];
   const initialCategories = route.params?.categories || externalCategories || ['Pasta', 'Juices','Bread', 'Dairy', 'Fruits', 'Vegetables'];
@@ -80,10 +93,23 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
     setCategories(updatedCategories);
   };
   
+  useEffect(() => {
+    const initializeProducts = async () => {
+      const storedProducts = await AsyncStorage.getItem('products');
+      if (!storedProducts) {
+        // Save default products if none exist
+        await AsyncStorage.setItem('products', JSON.stringify(defaultProducts));
+        setProductList(defaultProducts);
+      } else {
+        setProductList(JSON.parse(storedProducts));
+      }
+    };
+    initializeProducts();
+  }, []);
   
   const handlePriceReduction = async (productId, newPrice) => {
     try {
-      const response = await fetchWithTimeout('http://192.168.1.102:5003/admin/price-reduction', {
+      const response = await fetchWithTimeout('http://192.168.1.105:5003/admin/price-reduction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId, newPrice }),
@@ -125,7 +151,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
           type: 'image/jpeg',
         });
       
-        const response = await fetch('http://192.168.1.102:5003/upload-leaflet', {
+        const response = await fetch('http://192.168.1.105:5003/upload-leaflet', {
           method: 'POST',
           body: formData,
           headers: {
@@ -153,52 +179,15 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
   useEffect(() => {
     const loadProducts = async () => {
       try {
+        await initialize(); // <- you’re calling it at the right place
         const storedProducts = await AsyncStorage.getItem('products');
-        let loadedProducts = storedProducts ? JSON.parse(storedProducts) : [];
-        // initialize with demo products.
-        if (loadedProducts.length === 0) {
-          loadedProducts = [
-            {
-              id: generateUniqueId('Apple Juice', 'Lidl'),
-              name: 'Apple Juice',
-              store: 'Lidl',
-              price: '2.99',
-              category: 'Juices',
-              image: Image.resolveAssetSource(appleJuice).uri,
-            },
-            {
-              id: generateUniqueId('Orange Juice', 'Lidl'),
-              name: 'Orange Juice',
-              store: 'Lidl',
-              price: '3.49',
-              category: 'Juices',
-              image: Image.resolveAssetSource(orangeJuice).uri,
-            },
-            {
-              id: generateUniqueId('Milk', 'Sklavenitis'),
-              name: 'Milk',
-              store: 'Sklavenitis',
-              price: '1.99',
-              category: 'Dairy',
-              image: Image.resolveAssetSource(milk).uri,
-            },
-            {
-              id: generateUniqueId('Bread', 'Alphamega'),
-              name: 'Bread',
-              store: 'Alphamega',
-              price: '1.49',
-              category: 'Bread',
-              image: Image.resolveAssetSource(bread).uri,
-            },
-          ];
-          await AsyncStorage.setItem('products', JSON.stringify(loadedProducts));
-        }
+        const loadedProducts = storedProducts ? JSON.parse(storedProducts) : [];
         setProductList(loadedProducts);
       } catch (error) {
         console.error('Error loading products:', error);
       }
     };
-
+  
     loadProducts();
   }, []);
 
@@ -234,7 +223,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
 
     const updatedProducts = [...productList, newProduct];
     setProductList(updatedProducts);
-    saveProducts(updatedProducts);
+    AsyncStorage.setItem('products', JSON.stringify(updatedProducts));
 
     if (!products.includes(productName)) {
       setProducts([...products, productName]);

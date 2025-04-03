@@ -4,11 +4,12 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import styled from 'styled-components/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { groupProductsByName } from '../app/groupProducts';
 
 const SearchPage = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [allProducts, setAllProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [groupedProducts, setGroupedProducts] = useState([]);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -16,7 +17,13 @@ const SearchPage = ({ navigation }) => {
         const productsStr = await AsyncStorage.getItem('products');
         const products = productsStr ? JSON.parse(productsStr) : [];
         setAllProducts(products);
-        setFilteredProducts(products);
+        const allStores = [...new Set(products.map(p => p.store))];
+        const allCategories = [...new Set(products.map(p => p.category))];
+        const grouped = groupProductsByName(products, {
+          supermarket: allStores,
+          categories: allCategories
+        }, null);
+        setGroupedProducts(grouped);
       } catch (error) {
         console.error('Error loading products:', error);
       }
@@ -33,7 +40,13 @@ const SearchPage = ({ navigation }) => {
       (product.supermarket && product.supermarket.toLowerCase().includes(lowerCaseQuery)) ||
       (product.store && product.store.toLowerCase().includes(lowerCaseQuery))
     );
-    setFilteredProducts(filtered);
+    const allStores = [...new Set(allProducts.map(p => p.store))];
+    const allCategories = [...new Set(allProducts.map(p => p.category))];
+    const grouped = groupProductsByName(filtered, {
+      supermarket: allStores,
+      categories: allCategories
+    }, null);
+    setGroupedProducts(grouped);
   };
 
   return (
@@ -53,20 +66,19 @@ const SearchPage = ({ navigation }) => {
 
       <ProductList>
         <FlatList
-          data={filteredProducts}
+          data={groupedProducts}
           keyExtractor={(item, index) => index.toString()}
           renderItem={({ item }) => (
-            <ProductCard>
-              <ProductImage source={{ uri: item.image }} />
-              <ProductDetails>
-                <ProductName>{item.name}</ProductName>
-                <ProductSupermarket>{item.supermarket || item.store}</ProductSupermarket>
-                <ProductPrice>€{item.price}</ProductPrice>
-              </ProductDetails>
-              <CompareButton onPress={() => navigation.navigate('ComparePrices', { product: item })}>
-                <ButtonText>Compare</ButtonText>
-              </CompareButton>
-            </ProductCard>
+            <TouchableOpacity onPress={() => navigation.navigate('ProductPage', { product: item })}>
+              <ProductCard>
+                <ProductImage source={{ uri: item.image }} />
+                <ProductDetails>
+                  <ProductName>{item.name}</ProductName>
+                  <ProductSupermarket>{item.store}</ProductSupermarket>
+                  <ProductPrice>€{item.minPrice}</ProductPrice>
+                </ProductDetails>
+              </ProductCard>
+            </TouchableOpacity>
           )}
           ListEmptyComponent={
             <EmptyState>
@@ -149,19 +161,6 @@ const ProductPrice = styled(Text)`
   font-size: 16px;
   font-weight: bold;
   color: #34c2b3;
-`;
-
-const CompareButton = styled(TouchableOpacity)`
-  padding: 10px 15px;
-  border-radius: 25px;
-  background-color: #34c2b3;
-  elevation: 3;
-`;
-
-const ButtonText = styled(Text)`
-  font-size: 14px;
-  color: #fff;
-  font-weight: bold;
 `;
 
 const EmptyState = styled(View)`

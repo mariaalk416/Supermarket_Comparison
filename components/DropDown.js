@@ -23,18 +23,21 @@ const getInitialArray = (incoming, def) => {
 };
 
 const defaultStores = ['Sklavenitis', 'Lidl', 'Alphamega', 'Poplife'];
-const defaultProducts = [
-  'Apple Juice',
+const defaultProducts =  ['Apple Juice',
   'Orange Juice',
-  'Milk',
+  'Whole Milk',
+  'Delact Milk',
   'Bread',
-  'Cheese',
+  'Edam Cheese',
+  'Gouda Cheese',
+  'Halloumi',
   'Eggs',
-  'Yogurt',
+  'Greek Yogurt',
+  'Greek Delact Yogurt',
   'Pasta',
+  'Butter',
   'Tomato Sauce',
-  'Chicken',
-];
+  'Chicken',];
 const defaultCategories = ['Pasta', 'Juices', 'Bread', 'Dairy', 'Fruits', 'Vegetables'];
 
 /**

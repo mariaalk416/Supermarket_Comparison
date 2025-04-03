@@ -9,16 +9,19 @@ import AdminPage from '@/components/AdminPage';
 import SettingsPage from '@/components/Settings';
 import Cart from '@/components/Cart';
 import DropDown from '@/components/DropDown';
+import styled from 'styled-components/native';
 import Map from '@/components/Map';
 import { Icon } from 'react-native-elements';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OnboardingWizard from '@/components/Wizard';
+import WishlistPage from '@/components/WishlistPage';
 
 
 interface Preferences {
   supermarket: string[];
   categories: string[];
 }
+
 
 
 const Tab = createBottomTabNavigator();
@@ -28,45 +31,41 @@ interface TabsLayoutProps {
   preferences: Preferences;
   setIsAuthenticated: (value: boolean) => void;
 }
-const Tabs: React.FC<TabsLayoutProps> =  ({setIsAuthenticated }: { setIsAuthenticated: (value: boolean) => void }, preferences: TabsLayoutProps ) => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      tabBarStyle: {
-        paddingBottom: 10,
-        height: 65,
-      },
-      tabBarIcon: ({ color, size }) => {
-        let iconName = 'circle';
+const TabsLayout: React.FC<TabsLayoutProps> = ({ preferences, setIsAuthenticated }) => {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarStyle: {
+          paddingBottom: 10,
+          height: 65,
+        },
+        tabBarIcon: ({ color, size }) => {
+          let iconName = 'circle';
+          if (route.name === 'Home') iconName = 'home';
+          else if (route.name === 'Settings') iconName = 'cog';
+          else if (route.name === 'Admin') iconName = 'shield';
+          else if (route.name === 'Cart') iconName = 'shopping-cart';
+          else if (route.name === 'Map') iconName = 'map';
 
-        if (route.name === 'Home') {
-          iconName = 'home';
-        } else if (route.name === 'Settings') {
-          iconName = 'cog';
-        } else if (route.name === 'Admin') {
-          iconName = 'shield';
-        } else if (route.name === 'Cart') {
-          iconName = 'shopping-cart';
-        } else if (route.name === 'Map') {
-          iconName = 'map';
-        }
-
-        return <Icon name={iconName} type="font-awesome" color={color} size={size} />;
-      },
-      tabBarActiveTintColor: '#34c2b3',
-      tabBarInactiveTintColor: '#6b6b6b',
-      headerShown: false,
-    })}
-  >
-    <Tab.Screen name="Home" children={(props) => <HomePage {...props} preferences={preferences} />} />
-    <Tab.Screen name="Admin" component={AdminPage} />
-    <Tab.Screen name="Cart" component={Cart} />
-    <Tab.Screen name="Map" component={Map} />
-    <Tab.Screen
-      name="Settings"
-      children={() => <SettingsPage setIsAuthenticated={setIsAuthenticated} />}
-    />
-  </Tab.Navigator>
-);
+          return <Icon name={iconName} type="font-awesome" color={color} size={size} />;
+        },
+        tabBarActiveTintColor: '#34c2b3',
+        tabBarInactiveTintColor: '#6b6b6b',
+        headerShown: false,
+      })}
+    >
+      <Tab.Screen name="Home">
+        {(props) => <HomePage {...props} preferences={preferences} />}
+      </Tab.Screen>
+      <Tab.Screen name="Admin" component={AdminPage} />
+      <Tab.Screen name="Cart" component={Cart} />
+      <Tab.Screen name="Map" component={Map} />
+      <Tab.Screen name="Settings">
+        {() => <SettingsPage setIsAuthenticated={setIsAuthenticated} />}
+      </Tab.Screen>
+    </Tab.Navigator>
+  );
+};
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -97,7 +96,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
 
 const registerPushToken = async (token: string, userIdentifier: string) => {
   try {
-    const response = await fetch('http://192.168.1.102:5003/register-push-token', {
+    const response = await fetch('http://192.168.1.105:5003/register-push-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, userIdentifier }),
@@ -162,7 +161,7 @@ const AppNavigator = () => {
           <Stack.Screen
             name="Main"
             options={{ headerShown: false }}
-            children={() => <Tabs setIsAuthenticated={setIsAuthenticated} />}
+            children={() => <TabsLayout setIsAuthenticated={setIsAuthenticated} preferences={preferences} />}
           />
         </>
       ) : (
@@ -189,4 +188,4 @@ const AppNavigator = () => {
   );
 };
 
-export default AppNavigator;
+export default TabsLayout;
