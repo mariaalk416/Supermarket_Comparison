@@ -259,87 +259,108 @@ import initialize from '../app/initProducts';
 import { groupProductsByName } from '../app/groupProducts';
 
 const HomePage = ({ navigation }) => {
-  const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [dropdownItems, setDropdownItems] = useState([
-    { label: 'All Categories', value: null }
-  ]);
-  const [preferences, setPreferences] = useState({
-    supermarket: [],
-    categories: []
-  });
+  const [dropdownItems, setDropdownItems] = useState([{ label: 'All Categories', value: null }]);
+  const [preferences, setPreferences] = useState({ supermarket: [], categories: [] });
+
+  const updateDropdownItems = useCallback((productsList) => {
+    const uniqueCategories = [...new Set(productsList.map(p => p.category))];
+    setDropdownItems([
+      { label: 'All Categories', value: null },
+      ...uniqueCategories.map(cat => ({
+        label: cat.charAt(0).toUpperCase() + cat.slice(1),
+        value: cat,
+      })),
+    ]);
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       await initialize();
-
-      // Load products
-      let productsData = await AsyncStorage.getItem('products');
-      if (!productsData) {
-        const defaultProducts = [];
-        await AsyncStorage.setItem('products', JSON.stringify(defaultProducts));
-        productsData = JSON.stringify(defaultProducts);
-      }
-      const productsList = JSON.parse(productsData);
-      setProducts(productsList);
-
-      // Load preferences
+      const productsData = await AsyncStorage.getItem('products');
       const prefs = await AsyncStorage.getItem('userPreferences');
-      if (prefs) {
-        const parsedPrefs = JSON.parse(prefs);
-        setPreferences(parsedPrefs);
+
+      if (productsData) {
+        const productsList = JSON.parse(productsData);
+        updateDropdownItems(productsList);
+
+        if (prefs) {
+          const parsedPrefs = JSON.parse(prefs);
+          setPreferences(parsedPrefs);
+
+          let filtered = [...productsList];
+          if (parsedPrefs.supermarket.length > 0) {
+            filtered = filtered.filter(p => parsedPrefs.supermarket.includes(p.store));
+          }
+          if (parsedPrefs.categories.length > 0) {
+            filtered = filtered.filter(p => parsedPrefs.categories.includes(p.category));
+          }
+
+          filtered.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+          const grouped = groupProductsByName(filtered, parsedPrefs, null);
+          setFilteredProducts(grouped);
+        }
       }
-
-      // Initialize dropdown items
-      const uniqueCategories = [...new Set(productsList.map(p => p.category))];
-      setDropdownItems([
-        { label: 'All Categories', value: null },
-        ...uniqueCategories.map(cat => ({
-          label: cat.charAt(0).toUpperCase() + cat.slice(1),
-          value: cat,
-        })),
-      ]);
-
-      filterProducts(productsList, prefs ? JSON.parse(prefs) : preferences, null);
     } catch (error) {
       Alert.alert('Error', 'Failed to load data');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [updateDropdownItems]);
 
-  const filterProducts = useCallback((productsList, prefs, category) => {
-    if (!prefs || !prefs.supermarket || !prefs.categories) {
-      setFilteredProducts([]);
-      return;
-    }
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-    let filtered = [...productsList];
-  
-    if (prefs.supermarket.length > 0) {
-      filtered = filtered.filter(p => prefs.supermarket.includes(p.store));
-    }
-    if (prefs.categories.length > 0) {
-      filtered = filtered.filter(p => prefs.categories.includes(p.category));
-    }
-  
-    if (category) {
-      filtered = filtered.filter(p => p.category === category);
-    }
+  useFocusEffect(
+    useCallback(() => {
+      const refreshPrefsAndData = async () => {
+        try {
+          const prefs = await AsyncStorage.getItem('userPreferences');
+          const productData = await AsyncStorage.getItem('products');
 
-    filtered.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
-  
-    const grouped = groupProductsByName(filtered, prefs, category);
-    setFilteredProducts(grouped);
-  }, []);
+          if (prefs && productData) {
+            const parsedPrefs = JSON.parse(prefs);
+            const parsedProducts = JSON.parse(productData);
+
+            let filtered = [...parsedProducts];
+
+            if (parsedPrefs.supermarket.length > 0) {
+              filtered = filtered.filter(p => parsedPrefs.supermarket.includes(p.store));
+            }
+
+            if (parsedPrefs.categories.length > 0) {
+              filtered = filtered.filter(p => parsedPrefs.categories.includes(p.category));
+            }
+
+            updateDropdownItems(filtered);
+
+
+            if (selectedCategory) {
+              filtered = filtered.filter(p => p.category === selectedCategory);
+            }
+
+            filtered.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+
+
+            const grouped = groupProductsByName(filtered, parsedPrefs, selectedCategory);
+            setFilteredProducts(grouped);
+          }
+        } catch (e) {
+          console.warn('Error refreshing preferences or product data', e);
+        }
+      };
+
+      refreshPrefsAndData();
+    }, [selectedCategory])
+  );
 
   const filterByCategory = (category) => {
     setSelectedCategory(category);
-    filterProducts(products, preferences, category);
   };
 
   const addToCart = async (product) => {
@@ -353,25 +374,6 @@ const HomePage = ({ navigation }) => {
       Alert.alert('Error', 'Failed to add product to cart');
     }
   };
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const refreshPrefsAndData = async () => {
-        const prefs = await AsyncStorage.getItem('userPreferences');
-        if (prefs) {
-          const parsedPrefs = JSON.parse(prefs);
-          setPreferences(parsedPrefs);
-          filterProducts(products, parsedPrefs, selectedCategory);
-        }
-      };
-  
-      refreshPrefsAndData();
-    }, [products, selectedCategory])
-  );
 
   if (isLoading) {
     return (
@@ -388,7 +390,7 @@ const HomePage = ({ navigation }) => {
           <PreferencesText>
             Preferred Supermarkets: {preferences.supermarket.join(', ') || 'None selected'}
           </PreferencesText>
-          
+
           <SearchContainer>
             <SearchInput 
               onPress={() => navigation.navigate('Search')}
@@ -399,7 +401,7 @@ const HomePage = ({ navigation }) => {
               <Icon name="search" size={20} color="#fff" />
             </SearchButton>
           </SearchContainer>
-          
+
           <HeroBackground source={back} resizeMode="cover">
             <Overlay>
               <HeroTitle>Discover & Save with Supermarket Price Comparisons!</HeroTitle>
@@ -407,8 +409,7 @@ const HomePage = ({ navigation }) => {
           </HeroBackground>
         </HeaderContainer>
       </View>
-  
-      {/* Dropdown */}
+
       <View style={{ 
         paddingHorizontal: 20,
         marginBottom: 10,
@@ -428,7 +429,7 @@ const HomePage = ({ navigation }) => {
           listMode="SCROLLVIEW"
         />
       </View>
-  
+
       <FlatList
         contentContainerStyle={{ 
           paddingBottom: 100,
@@ -449,9 +450,6 @@ const HomePage = ({ navigation }) => {
                 <ProductPrice>€{item.minPrice.toFixed(2)}</ProductPrice>
                 <ProductStore>Cheapest: {item.store}</ProductStore>
               </ProductDetails>
-              <AddButton onPress={() => addToCart(item)}>
-                <AddButtonText>Add</AddButtonText>
-              </AddButton>
             </ProductCard>
           </TouchableOpacity>
         )}

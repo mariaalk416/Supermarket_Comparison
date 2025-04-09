@@ -7,10 +7,10 @@ import * as Animatable from "react-native-animatable";
 import * as Location from "expo-location";
 
 const supermarkets = [
-  { name: "AlphaMega", lat: 35.1658, lng: 33.3669 },
-  { name: "Lidl", lat: 35.1856, lng: 33.3823 },
-  { name: "Sklavenitis", lat: 34.7071, lng: 33.0226 },
-  { name: "Papantoniou", lat: 34.7755, lng: 32.4233 }
+  { name: "Alphamega", lat: 35.1661, lng: 33.3746 },      
+  { name: "Lidl", lat: 35.1674, lng: 33.3956 },       
+  { name: "Sklavenitis", lat: 35.1732, lng: 33.3658 },      
+  { name: "Poplife", lat: 35.1553, lng: 33.3550 }       
 ];
 
 const SupermarketMap = () => {
