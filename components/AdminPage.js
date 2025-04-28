@@ -109,7 +109,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
   
   const handlePriceReduction = async (productId, newPrice) => {
     try {
-      const response = await fetchWithTimeout('http://192.168.1.105:5003/admin/price-reduction', {
+      const response = await fetchWithTimeout('http://192.168.1.103:5003/admin/price-reduction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId, newPrice }),
@@ -151,7 +151,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
           type: 'image/jpeg',
         });
       
-        const response = await fetch('http://192.168.1.105:5003/upload-leaflet', {
+        const response = await fetch('http://192.168.1.103:5003/upload-leaflet', {
           method: 'POST',
           body: formData,
           headers: {
@@ -294,7 +294,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
     setEditingPrice(currentPrice);
   };
 
-  const handleSavePrice = (productId) => {
+  const handleSavePrice = async (productId) => {
     const product = productList.find((item) => item.id === productId);
     const originalPrice = parseFloat(product?.price || '0');
     const newPrice = parseFloat(editingPrice || '0');
@@ -314,10 +314,49 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
     setEditingPrice('');
   
     if (newPrice < originalPrice) {
-      handlePriceReduction(productId, newPrice); 
+      await handlePriceReduction(productId, newPrice);
+    } else if (newPrice > originalPrice) {
+      await checkWatchlistAndNotify(productId, newPrice);
     }
   };
-
+  
+  const checkWatchlistAndNotify = async (productId, newPrice) => {
+    try {
+      const storedWatchlist = await AsyncStorage.getItem('watchlist');
+      const watchlist = storedWatchlist ? JSON.parse(storedWatchlist) : [];
+      const product = productList.find((item) => item.id === productId);
+  
+      if (!product) return;
+  
+      const isInWatchlist = watchlist.some((item) => item.name === product.name);
+  
+      if (isInWatchlist) {
+        await sendPriceIncreaseNotification(productId, newPrice, product.name, product.store);
+      }
+    } catch (error) {
+      console.error('Error checking watchlist:', error);
+    }
+  };
+  
+  const sendPriceIncreaseNotification = async (productId, newPrice, productName, storeName) => {
+    try {
+      const response = await fetchWithTimeout('http://192.168.1.103:5003/admin/price-increase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, newPrice, productName, storeName }),
+      });
+  
+      const data = await response.json();
+  
+      if (data.success) {
+        console.log('Price increase notification sent to watchlist users.');
+      } else {
+        console.warn('Failed to send price increase notification:', data.error);
+      }
+    } catch (error) {
+      console.error('Error sending price increase notification:', error);
+    }
+  };
 
   const filteredProducts = productList.filter(
     (item) => item.name && item.store && item.price

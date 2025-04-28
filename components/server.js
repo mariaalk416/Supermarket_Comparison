@@ -79,6 +79,62 @@ app.post('/admin/price-reduction', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+let userWatchlists = {
+
+};
+
+app.post('/save-watchlist', (req, res) => {
+  const { email, watchlist } = req.body;
+
+  if (!email || !watchlist) {
+    return res.status(400).json({ success: false, message: 'Missing email or watchlist.' });
+  }
+
+  userWatchlists[email] = watchlist; 
+
+  console.log(`Updated watchlist for ${email}`, watchlist);
+  res.json({ success: true, message: 'Watchlist updated successfully.' });
+});
+
+app.post('/admin/price-increase', async (req, res) => {
+  try {
+    const { productId, newPrice, productName, storeName } = req.body;
+
+    let interestedTokens = [];
+
+    for (const userEmail in userWatchlists) {
+      const watchlist = userWatchlists[userEmail] || [];
+
+      const isWatching = watchlist.some(idOrProduct => {
+        if (typeof idOrProduct === 'string') {
+          return idOrProduct.includes(productName); 
+        }
+        return idOrProduct.name === productName; 
+      });
+
+      if (isWatching) {
+        interestedTokens.push(...subscribedDeviceTokens);
+      }
+    }
+
+    if (interestedTokens.length === 0) {
+      console.log('No users to notify for this price increase.');
+      return res.status(200).json({ success: true, message: 'No users interested.' });
+    }
+
+    const message = `Price increased for ${productName} at ${storeName}: €${newPrice}`;
+
+    await sendPushNotifications(interestedTokens, message);
+
+    res.status(200).json({ success: true, message: 'Price increase notifications sent.' });
+  } catch (error) {
+    console.error('Error processing price increase:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
 app.post('/register-push-token', (req, res) => {
   const { token, userIdentifier } = req.body;
 

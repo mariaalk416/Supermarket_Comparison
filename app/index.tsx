@@ -40,6 +40,7 @@ import Cart from '@/components/Cart';
 import Map from '@/components/Map';
 import OnboardingWizard from '@/components/Wizard';
 import SettingsPage from '@/components/Settings'; 
+import WatchlistPage from '@/components/WatchlistPage';
 
 LogBox.ignoreLogs([
   'Error: Attempted to navigate before mounting the Root Layout component.',
@@ -98,8 +99,13 @@ function CustomDrawerContent(props) {
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={styles.drawerContainer}>
       <DrawerItem
-        label="Wishlist"
+        label="Preferences"
         onPress={() => props.navigation.navigate('Wishlist')}
+        labelStyle={styles.drawerLabel}
+      />
+      <DrawerItem
+        label="Watchlist"
+        onPress={() => props.navigation.navigate('Watchlist')}
         labelStyle={styles.drawerLabel}
       />
       <DrawerItem
@@ -259,6 +265,11 @@ const Index = () => {
                     />
                   )}
                 </Drawer.Screen>
+                <Drawer.Screen 
+                  name="Watchlist"
+                  component={WatchlistPage}
+                  options={{ title: 'Watchlist' }}
+                />
                 <Drawer.Screen 
                   name="Leaflets" 
                   component={LeafletPage} 

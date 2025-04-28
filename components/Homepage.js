@@ -266,6 +266,53 @@ const HomePage = ({ navigation }) => {
   const [dropdownItems, setDropdownItems] = useState([{ label: 'All Categories', value: null }]);
   const [preferences, setPreferences] = useState({ supermarket: [], categories: [] });
 
+  const handleAddToWatchlist = async (product) => {
+    try {
+      const storedProducts = await AsyncStorage.getItem('products');
+      const storedWatchlist = await AsyncStorage.getItem('watchlist');
+      const allProducts = storedProducts ? JSON.parse(storedProducts) : [];
+      const currentWatchlist = storedWatchlist ? JSON.parse(storedWatchlist) : [];
+  
+      // Find all variants 
+      const variants = allProducts.filter(p => p.name === product.name);
+  
+      // Merge current watchlist and variants, avoid duplicates (match by id)
+      const mergedWatchlist = [...currentWatchlist];
+  
+      variants.forEach(variant => {
+        const alreadyExists = mergedWatchlist.some(item => item.id === variant.id);
+        if (!alreadyExists) {
+          mergedWatchlist.push(variant);
+        }
+      });
+  
+      // Save updated watchlist locally
+      await AsyncStorage.setItem('watchlist', JSON.stringify(mergedWatchlist));
+  
+      // Get user email
+      const email = await AsyncStorage.getItem('loginname');
+      if (!email) {
+        Alert.alert('Error', 'User email not found. Please log in again.');
+        return;
+      }
+  
+      // prepare list of product IDs to send
+      const watchlistIds = mergedWatchlist.map(item => item.id);
+  
+      // Send updated watchlist to server
+      await fetch('http://192.168.1.103:5003/save-watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, watchlist: watchlistIds }),
+      });
+  
+      Alert.alert('Success', 'Product(s) added to your watchlist.');
+    } catch (error) {
+      console.error('Error adding to watchlist:', error);
+      Alert.alert('Error', 'Failed to add product to watchlist.');
+    }
+  };
+  
   const updateDropdownItems = useCallback((productsList) => {
     const uniqueCategories = [...new Set(productsList.map(p => p.category))];
     setDropdownItems([
@@ -450,6 +497,9 @@ const HomePage = ({ navigation }) => {
                 <ProductPrice>€{item.minPrice.toFixed(2)}</ProductPrice>
                 <ProductStore>Cheapest: {item.store}</ProductStore>
               </ProductDetails>
+              <WatchlistButton onPress={() => handleAddToWatchlist(item)}>
+                <AddButtonText>Watch</AddButtonText>
+              </WatchlistButton>
             </ProductCard>
           </TouchableOpacity>
         )}
@@ -491,6 +541,13 @@ const SearchInput = styled(TextInput)`
   color: #333;
 `;
 
+const WatchlistButton = styled(TouchableOpacity)`
+  background-color: #34c2b3;
+  padding: 6px 12px;
+  border-radius: 20px;
+  margin-top: 8px;
+  align-self: flex-start;
+`;
 const SearchButton = styled(TouchableOpacity)`
   padding: 10px 15px;
   background-color: #34c2b3;
@@ -594,9 +651,10 @@ const AddButton = styled(TouchableOpacity)`
   margin-top: auto;
 `;
 
-const AddButtonText = styled.Text`
+const AddButtonText = styled(Text)`
   color: #fff;
   font-weight: bold;
+  font-size: 14px;
 `;
 
 const EmptyContainer = styled.View`
