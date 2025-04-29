@@ -14,6 +14,28 @@ app.use(express.json());
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+const PRICE_HISTORY_FILE = path.join(__dirname, 'priceHistory.json');
+
+const loadPriceHistoryFromFile = () => {
+  try {
+    if (fs.existsSync(PRICE_HISTORY_FILE)) {
+      const raw = fs.readFileSync(PRICE_HISTORY_FILE);
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error('Error loading price history file:', err);
+  }
+  return {};
+};
+
+const savePriceHistoryToFile = () => {
+  try {
+    fs.writeFileSync(PRICE_HISTORY_FILE, JSON.stringify(priceHistory, null, 2));
+  } catch (err) {
+    console.error('Error writing price history file:', err);
+  }
+};
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -146,6 +168,33 @@ app.post('/register-push-token', (req, res) => {
 
   res.json({ success: true, message: 'Push token registered successfully.' });
 });
+
+let priceHistory = loadPriceHistoryFromFile();
+
+app.post('/save-price-history', (req, res) => {
+  const { productName, storeName, price, date } = req.body;
+
+  if (!priceHistory[productName]) {
+    priceHistory[productName] = {};
+  }
+  if (!priceHistory[productName][storeName]) {
+    priceHistory[productName][storeName] = [];
+  }
+
+  priceHistory[productName][storeName].unshift({ date, price });
+  savePriceHistoryToFile();
+  console.log('Updated price history:', JSON.stringify(priceHistory, null, 2));
+  console.log('Received save-price-history:', req.body);
+
+  res.json({ success: true, message: 'Price history saved.' });
+});
+
+app.get('/get-price-history', (req, res) => {
+  const { productName } = req.query;
+  const history = priceHistory[productName] || {};
+  res.json({ success: true, history });
+});
+
 /**
  * Endpoint to handle leaflet upload and email notifications
  */

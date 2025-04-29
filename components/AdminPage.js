@@ -107,6 +107,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
     initializeProducts();
   }, []);
   
+  //call to the backend server.js
   const handlePriceReduction = async (productId, newPrice) => {
     try {
       const response = await fetchWithTimeout('http://192.168.1.103:5003/admin/price-reduction', {
@@ -215,7 +216,6 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
       image: productImage,
     };
 
-    // avoid duplicates
     if (productList.some((item) => item.id === newProduct.id)) {
       Alert.alert('Error', 'This product already exists.');
       return;
@@ -296,7 +296,13 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
 
   const handleSavePrice = async (productId) => {
     const product = productList.find((item) => item.id === productId);
-    const originalPrice = parseFloat(product?.price || '0');
+    
+    if (!product) {
+      console.error('Product not found when saving price.');
+      return;
+    }
+  
+    const originalPrice = parseFloat(product.price || '0');
     const newPrice = parseFloat(editingPrice || '0');
   
     if (isNaN(newPrice) || newPrice <= 0) {
@@ -309,9 +315,13 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
     );
   
     setProductList(updatedProducts);
-    saveProducts(updatedProducts);
+    await saveProducts(updatedProducts);
     setEditingProductId(null);
     setEditingPrice('');
+  
+    console.log('Saving price history for', product.name, product.store, newPrice); // log!
+  
+    await savePriceHistory(product.name, product.store, newPrice);
   
     if (newPrice < originalPrice) {
       await handlePriceReduction(productId, newPrice);
@@ -319,6 +329,26 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
       await checkWatchlistAndNotify(productId, newPrice);
     }
   };
+  
+
+  const savePriceHistory = async (productName, storeName, price) => {
+    try {
+      console.log('Calling backend save-price-history with:', { productName, storeName, price });
+      await fetch('http://192.168.1.103:5003/save-price-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName,
+          storeName,
+          price,
+          date: new Date().toISOString(),
+        }),
+      });
+    } catch (error) {
+      console.error('Error saving price history:', error);
+    }
+  };
+  
   
   const checkWatchlistAndNotify = async (productId, newPrice) => {
     try {

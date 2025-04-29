@@ -41,9 +41,11 @@ import Map from '@/components/Map';
 import OnboardingWizard from '@/components/Wizard';
 import SettingsPage from '@/components/Settings'; 
 import WatchlistPage from '@/components/WatchlistPage';
+import PriceHistoryPage from '@/components/PriceHistoryPage';
 
 LogBox.ignoreLogs([
   'Error: Attempted to navigate before mounting the Root Layout component.',
+  'Warning: Grid: Support for defaultProps will be removed from function components in a future major release. Use JavaScript default parameters instead.',
 ]);
 
 enum AuthState {
@@ -274,6 +276,11 @@ const Index = () => {
                   name="Leaflets" 
                   component={LeafletPage} 
                   options={{ title: 'Leaflets' }} 
+                />
+                <Drawer.Screen
+                  name="PriceHistoryPage"
+                  component={PriceHistoryPage}
+                  options={{ title: 'Price History' }}
                 />
                 <Drawer.Screen 
                   name="ComparePrices" 

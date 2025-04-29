@@ -63,9 +63,38 @@ const CartPage = () => {
     }, 0);
   }, [filteredCartItems]);
 
+  const storeTotals = useMemo(() => {
+    const totals = {};
+  
+    cartItems.forEach(item => {
+      const store = item.store;
+      const price = parseFloat(item.price) || 0;
+      if (!totals[store]) {
+        totals[store] = 0;
+      }
+      totals[store] += price;
+    });
+  
+    return totals;
+  }, [cartItems]);
+
+  const cheapestStore = useMemo(() => {
+    const entries = Object.entries(storeTotals);
+    if (entries.length === 0) return null;
+    
+    return entries.reduce((min, curr) => (curr[1] < min[1] ? curr : min));
+  }, [storeTotals]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Your Cart</Text>
+      {cheapestStore && (
+        <View style={styles.cheapestContainer}>
+          <Text style={styles.cheapestText}>
+            Cheapest: {cheapestStore[0]} ({cheapestStore[1].toFixed(2)}€)
+          </Text>
+        </View>
+      )}
 
       <DropDownPicker
         open={storeDropdownOpen}

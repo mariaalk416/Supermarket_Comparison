@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ProductPage = ({ route }) => {
+const ProductPage = ({ route, navigation }) => {
   const { product } = route.params;
 
   const handleAddToCart = async (variant) => {
@@ -35,10 +35,17 @@ const ProductPage = ({ route }) => {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
+        
         <Image source={{ uri: product.image }} style={styles.productImage} />
         <View style={styles.detailsColumn}>
           <Text style={styles.name}>{product.name}</Text>
           <Text style={styles.category}>Category: {product.category}</Text>
+          <TouchableOpacity 
+          style={styles.historyButton} 
+          onPress={() => navigation.navigate('PriceHistoryPage', { product })}
+        >
+          <Text style={styles.historyButtonText}>Price History</Text>
+        </TouchableOpacity>
         </View>
       </View>
 
@@ -75,6 +82,18 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     marginBottom: 20,
+  },
+  historyButton: {
+    backgroundColor: '#34c2b3',
+    padding: 10,
+    borderRadius: 5,
+    alignSelf: 'center',
+    marginBottom: 15,
+  },
+  historyButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   productImage: {
     width: 100,
