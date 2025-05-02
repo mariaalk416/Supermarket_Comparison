@@ -32,7 +32,7 @@ async function registerForPushNotificationsAsync() {
 const registerDeviceToken = async (token, email) => {
   console.log('Attempting to register push token:', token);
   try {
-    const response = await fetch('http://192.168.1.103:5003/register-push-token', {
+    const response = await fetch('http://192.168.1.105:5003/register-push-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, userIdentifier: email }),

@@ -24,7 +24,7 @@ const PriceHistoryPage = ({ route }) => {
 
   const fetchPriceHistory = async () => {
     try {
-      const response = await fetch(`http://192.168.1.103:5003/get-price-history?productName=${encodeURIComponent(product.name)}`);
+      const response = await fetch(`http://192.168.1.105:5003/get-price-history?productName=${encodeURIComponent(product.name)}`);
       const data = await response.json();
       if (data.success) {
         const formatted = Object.entries(data.history).map(([store, changes]) => ({

@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import initialize from '../app/initProducts';
+import initialize from './initProducts';
 
 //images
 import milk from '../assets/images/milk.jpg'
@@ -110,7 +110,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
   //call to the backend server.js
   const handlePriceReduction = async (productId, newPrice) => {
     try {
-      const response = await fetchWithTimeout('http://192.168.1.103:5003/admin/price-reduction', {
+      const response = await fetchWithTimeout('http://192.168.1.105:5003/admin/price-reduction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId, newPrice }),
@@ -152,7 +152,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
           type: 'image/jpeg',
         });
       
-        const response = await fetch('http://192.168.1.103:5003/upload-leaflet', {
+        const response = await fetch('http://192.168.1.105:5003/upload-leaflet', {
           method: 'POST',
           body: formData,
           headers: {
@@ -334,7 +334,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
   const savePriceHistory = async (productName, storeName, price) => {
     try {
       console.log('Calling backend save-price-history with:', { productName, storeName, price });
-      await fetch('http://192.168.1.103:5003/save-price-history', {
+      await fetch('http://192.168.1.105:5003/save-price-history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -370,7 +370,7 @@ const AdminPage = ({ route, navigation, stores: externalStores, products: extern
   
   const sendPriceIncreaseNotification = async (productId, newPrice, productName, storeName) => {
     try {
-      const response = await fetchWithTimeout('http://192.168.1.103:5003/admin/price-increase', {
+      const response = await fetchWithTimeout('http://192.168.1.105:5003/admin/price-increase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId, newPrice, productName, storeName }),

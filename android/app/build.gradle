@@ -86,7 +86,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.supermarketprices"
+    namespace 'com.random416.supermarketprices'
     defaultConfig {
         applicationId 'com.random416.supermarketprices'
         minSdkVersion rootProject.ext.minSdkVersion

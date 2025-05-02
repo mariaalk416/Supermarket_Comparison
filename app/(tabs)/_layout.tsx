@@ -96,7 +96,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
 
 const registerPushToken = async (token: string, userIdentifier: string) => {
   try {
-    const response = await fetch('http://192.168.1.103:5003/register-push-token', {
+    const response = await fetch('http://192.168.1.105:5003/register-push-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, userIdentifier }),

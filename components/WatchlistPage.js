@@ -28,7 +28,7 @@ const WatchlistPage = ({ navigation }) => {
   
       const email = await AsyncStorage.getItem('loginname');
       if (email) {
-        await fetch('http://192.168.1.103:5003/save-watchlist', {
+        await fetch('http://192.168.1.105:5003/save-watchlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

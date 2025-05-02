@@ -255,7 +255,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import back from '../assets/images/backimage.jpg';
-import initialize from '../app/initProducts';
+import initialize from './initProducts';
 import { groupProductsByName } from '../app/groupProducts';
 
 const HomePage = ({ navigation }) => {
@@ -300,7 +300,7 @@ const HomePage = ({ navigation }) => {
       const watchlistIds = mergedWatchlist.map(item => item.id);
   
       // Send updated watchlist to server
-      await fetch('http://192.168.1.103:5003/save-watchlist', {
+      await fetch('http://192.168.1.105:5003/save-watchlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, watchlist: watchlistIds }),
